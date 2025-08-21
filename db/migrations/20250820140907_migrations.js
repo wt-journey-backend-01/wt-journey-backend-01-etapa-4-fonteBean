@@ -24,9 +24,9 @@ exports.up = function (knex) {
     ).then(() =>
       knex.schema.createTable("usuarios", (table) => {
         table.increments("id").primary();
-        table.string("name").notNullable();
+        table.string("nome").notNullable();
         table.string("email").unique().notNullable();
-        table.string("password").notNullable(); 
+        table.string("senha").notNullable(); 
       })
     );
 };
