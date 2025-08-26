@@ -3,8 +3,8 @@
  * @returns { Promise<void> } 
  */
 exports.seed = async function(knex) {
-  await knex('usuarios').del()
-  await knex('usuarios').insert([
+  await knex('users').del()
+  await knex('users').insert([
     {
       name: 'Everaldo Cano',
       email : "everaldo@example.com",

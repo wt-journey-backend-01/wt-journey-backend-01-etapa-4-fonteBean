@@ -17,9 +17,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-    "dev": "node --watch server.js",
     "db:migrate": "npx knex migrate:latest",
-    "db:seed": "npx knex seed:run"
+    "db:seed": "npx knex seed:run",
+    "db:setup" : "npm run db:migrate && npm run db:seed",
+    "dev": "npm run db:setup && node --watch server.js"
   },
   "repository": {
     "type": "git",

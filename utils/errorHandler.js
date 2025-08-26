@@ -1,7 +1,5 @@
-const { json } = require("zod");
-
-function errorResponse(res,statusCode,message){
-  return res,res.status(statusCode),json(message);
+function errorResponse(res, statusCode, message) {
+  return res.status(statusCode).json({ error: message });
 }
 
-module.exports = errorResponse;
+module.exports = errorResponse
