@@ -1,7 +1,7 @@
 const userRepository = require('../repositories/usersRepository.js');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const errorResponse = require('../utils/errorHandler');
+const errorResponse = require('../utils/errorHandler.js');
 
 
 async function login (req,res,next){
@@ -15,7 +15,6 @@ async function login (req,res,next){
     if(!isPasswordValid){
       return next(errorResponse(res,401,"Password incorrect"));
     }
-    console.log("2");
     const token = jwt.sign({id: user.id, name:user.name, email:user.email}, process.env.JWT_PASSWORD,{
       expiresIn: "1d"
     });

@@ -49,7 +49,7 @@ async function getAgenteById(req,res){
 
 
 async function createAgente(req, res) {
-  const { nome, cargo, dataDeIncorporacao } = req.body;
+  const {nome,cargo,dataDeIncorporacao } = req.body;
 
   if (!nome || !cargo || !dataDeIncorporacao) {
     return errorResponse(res,400,"Nome, Cargo e dataDeIncorporacao são obrigatórios.");
