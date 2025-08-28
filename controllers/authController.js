@@ -21,6 +21,14 @@ async function login (req,res,next){
     });
     res.status(200).json({"access_token": token})
 }
+async function getMe(req, res) {
+  const userId = req.user.id;
+  const user = await userRepository.findUserById(userId);
+  if (!user) {
+    return errorResponse(res, 404, "Usuário não encontrado");
+  }
+  res.status(200).json(user);
+}
 
 const userSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
@@ -31,7 +39,7 @@ const userSchema = z.object({
     .regex(/[A-Z]/, "Senha deve conter letra maiúscula")
     .regex(/[0-9]/, "Senha deve conter número")
     .regex(/[^a-zA-Z0-9]/, "Senha deve conter caractere especial"),
-});
+}).strict();
 
 async function signUp (req,res){
     try{
@@ -72,5 +80,6 @@ async function getUsers (req,res){
 module.exports = {
   login,
   signUp,
+  getMe,
   getUsers
 }

@@ -14,10 +14,10 @@ const casosRoutes = require('./routes/casosRoutes.js');
 
 
 
-app.use(authRoutes);
-app.use(agentesRoutes);
-app.use(casosRoutes);
 
+app.use('/agentes', authMiddleware, agentesRoutes);
+app.use('/casos', authMiddleware, casosRoutes);
+app.use('/auth',authRoutes); 
 
 
 

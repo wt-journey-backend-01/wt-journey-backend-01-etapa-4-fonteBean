@@ -1,4 +1,5 @@
-const db = require('../db/db')
+const db = require('../db/db');
+const { findById } = require('./agentesRepository');
 
 
 
@@ -16,13 +17,21 @@ async function findAll() {
 
 async function findUserByEmail(email) {
   try{
-    const [user] = await db('usuarios').where({email:email}).first();
+    const user = await db('usuarios').where({email:email}).first();
     if(!user){
       return false;
     }
     return user;
   }catch(err){
     return false
+  }
+}
+async function findUserById(id) {
+  try {
+    const user = await db('usuarios').where({ id }).first();
+    return user || false;
+  } catch (err) {
+    return false;
   }
 }
 
@@ -39,6 +48,7 @@ async function createUser(user) {
 
 module.exports = {
   findUserByEmail,
+  findById,
   createUser,
   findAll
 }

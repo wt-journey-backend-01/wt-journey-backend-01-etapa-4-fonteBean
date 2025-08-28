@@ -7,11 +7,11 @@ async function authMiddleware(req,res,next){
   if(!token){
    return   errorResponse(res,401,"Token Necessario");
   }
-  jwt.verify(token, process.env.JWT_SECRET, (err)=>{
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded)=>{
     if(err){
       return errorResponse(res,401,"Token invalido");
     }
-    req.user = user;
+    req.user = decoded;
     next();
   }) 
 }

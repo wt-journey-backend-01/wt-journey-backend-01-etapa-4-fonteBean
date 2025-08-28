@@ -3,11 +3,11 @@ const express = require('express');
 const router = express.Router();
 
 
-router.get('/agentes', agentesController.getAgentes);
-router.get('/agentes/:id', agentesController.getAgenteById);
-router.post('/agentes', agentesController.createAgente);
-router.put('/agentes/:id',agentesController.updateAgente);
-router.patch('/agentes/:id', agentesController.patchAgente);
-router.delete('/agentes/:id',agentesController.deleteAgente);
+router.get(agentesController.getAgentes);
+router.get('/:id', agentesController.getAgenteById);
+router.post(agentesController.createAgente);
+router.put('/:id',agentesController.updateAgente);
+router.patch('/:id', agentesController.patchAgente);
+router.delete('/:id',agentesController.deleteAgente);
 
 module.exports= router;
