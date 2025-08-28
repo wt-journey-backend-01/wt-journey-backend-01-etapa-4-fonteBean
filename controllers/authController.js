@@ -19,7 +19,7 @@ async function login (req,res,next){
       ,{
       expiresIn: "1d"
     });
-    res.status(200).json({"access-token": token})
+    res.status(200).json({"access_token": token})
 }
 
 const userSchema = z.object({
@@ -34,23 +34,30 @@ const userSchema = z.object({
 });
 
 async function signUp (req,res){
-    const userData = userSchema.parse(req.body);
-    const userExists = await userRepository.findUserByEmail(userData.email);
-    if(userExists){
-      return errorResponse(res,400,"User already exists")
-    }
-    const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS || 10));
-    const hashedPassword = await bcrypt.hash(userData.senha,salt);
-    userData.senha = hashedPassword;
-    const newUser = await userRepository.createUser(userData)
+    try{
+      const userData = userSchema.parse(req.body);
+      const userExists = await userRepository.findUserByEmail(userData.email);
+      if(userExists){
+        return errorResponse(res,400,"User already exists")
+      }
+      const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS || 10));
+      const hashedPassword = await bcrypt.hash(userData.senha,salt);
+      userData.senha = hashedPassword;
+      const newUser = await userRepository.createUser(userData)
 
-    if(!newUser){
-      return errorResponse(res,400,"Bad Request");
+      if(!newUser){
+        return errorResponse(res,400,"Bad Request");
+      }
+      res.status(201).json({
+        message: "User created",
+        user: newUser
+      })
+    }catch(error){
+      if (error instanceof z.ZodError) {
+      return errorResponse(res, 400, error.errors.map(e => e.message).join(", "));
     }
-    res.status(201).json({
-      message: "User created",
-      user: newUser
-    })
+    return errorResponse(res, 500, "Erro interno no servidor");
+    }
 }
 
 

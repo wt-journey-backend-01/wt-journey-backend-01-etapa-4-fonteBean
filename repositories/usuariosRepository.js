@@ -16,7 +16,7 @@ async function findAll() {
 
 async function findUserByEmail(email) {
   try{
-    const [user] = await db('usuarios').where({email:email}).returning("*");
+    const [user] = await db('usuarios').where({email:email}).first();
     if(!user){
       return false;
     }

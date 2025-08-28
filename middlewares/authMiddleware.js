@@ -11,6 +11,7 @@ async function authMiddleware(req,res,next){
     if(err){
       return errorResponse(res,401,"Token invalido");
     }
+    req.user = user;
     next();
   }) 
 }
