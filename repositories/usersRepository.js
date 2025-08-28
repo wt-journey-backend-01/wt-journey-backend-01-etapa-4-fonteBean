@@ -16,12 +16,10 @@ async function findUserByEmail(email) {
 
 async function createUser(user) {
   try{
-    const create = await db('users').insert(user);
-    if(!create){
-      return false;
-    }
-    return user;
+    const [userCreated] = await db('users').insert(user).returning("*");
+    return userCreated;
   }catch(err){
+    console.error("Erro ao criar usuário no banco de dados:", err);
     return false
   }
 }
