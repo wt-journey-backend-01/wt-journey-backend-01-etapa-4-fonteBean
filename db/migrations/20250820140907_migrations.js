@@ -7,11 +7,11 @@ const { table } = require("console");
 
 exports.up = function (knex) {
   return knex.schema
-    .createTable("users", (table) => {
+    .createTable("usuarios", (table) => {
      table.increments("id").primary();
-        table.string("name").notNullable();
+        table.string("nome").notNullable();
         table.string("email").unique().notNullable();
-        table.string("password").notNullable(); 
+        table.string("senha").notNullable(); 
     }).then(() =>
       knex.schema.createTable("agentes", (table) => {
          table.increments("id").primary();
@@ -37,7 +37,7 @@ exports.up = function (knex) {
 
 exports.down = function (knex) {
   return knex.schema
-    .dropTable("users")
+    .dropTable("usuarios")
     .then(()=>
       knex.schema.dropTable("agentes")).
     then(()=>

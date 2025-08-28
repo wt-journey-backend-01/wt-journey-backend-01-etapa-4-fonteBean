@@ -1,9 +1,22 @@
 const db = require('../db/db')
 
 
+
+async function findAll() {
+  try{
+    const users = await db('usuarios').select("*");
+    if(!users){
+      return false;
+    }
+    return users;
+  }catch(err){
+    return false;
+  }
+}
+
 async function findUserByEmail(email) {
   try{
-    const user = await db('users').where({email:email});
+    const [user] = await db('usuarios').where({email:email}).returning("*");
     if(!user){
       return false;
     }
@@ -16,7 +29,7 @@ async function findUserByEmail(email) {
 
 async function createUser(user) {
   try{
-    const [userCreated] = await db('users').insert(user).returning("*");
+    const [userCreated] = await db('usuarios').insert(user).returning("*");
     return userCreated;
   }catch(err){
     console.error("Erro ao criar usuário no banco de dados:", err);
@@ -26,5 +39,6 @@ async function createUser(user) {
 
 module.exports = {
   findUserByEmail,
-  createUser
+  createUser,
+  findAll
 }

@@ -8,10 +8,13 @@ app.use(express.urlencoded({extended: true}));
 app.use(express.json());
 
 
-const usersRoutes = require('./routes/usersRoutes.js');
+const authRoutes = require('./routes/authRoutes.js');
 const agentesRoutes = require('./routes/agentesRoutes.js');
 const casosRoutes = require('./routes/casosRoutes.js');
-app.use(usersRoutes);
+
+
+
+app.use(authRoutes);
 app.use(agentesRoutes);
 app.use(casosRoutes);
 

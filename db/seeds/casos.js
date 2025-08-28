@@ -6,7 +6,6 @@
 
 exports.seed = async function (knex) {
   await knex("casos").del();
-
   await knex("casos").insert([
     {
       titulo: "Roubo de Dados",
