@@ -1,295 +1,254 @@
 <sup>Esse é um feedback gerado por IA, ele pode conter erros.</sup>
 
-Você tem 9 créditos restantes para usar o sistema de feedback AI.
+Você tem 8 créditos restantes para usar o sistema de feedback AI.
 
 # Feedback para fonteBean:
 
-Nota final: **30.4/100**
+Nota final: **55.9/100**
 
-# Feedback para fonteBean 🚓💻
+Olá, fonteBean! 👋🚀
 
-Olá, fonteBean! Que jornada e tanto você está enfrentando nessa etapa 4! Antes de mais nada, parabéns por ter avançado até aqui e entregue uma base funcional para os agentes e casos, além de já ter implementado o cadastro, login e logout de usuários — isso já é um baita progresso! 🎉👏
-
----
-
-## 🎉 Pontos Positivos e Conquistas Bônus
-
-- Seu código para agentes está bem estruturado e com validações importantes, como a data de incorporação.
-- Você conseguiu implementar o cadastro, login, logout e exclusão de usuários que passaram em vários testes importantes.
-- O JWT está sendo gerado com expiração, o que é fundamental para segurança.
-- Parabéns por ter conseguido passar testes bônus relacionados à filtragem e busca de agentes e casos, além da criação de mensagens de erro personalizadas. Isso mostra que seu código já tem uma base sólida para funcionalidades avançadas! 🌟
+Primeiramente, parabéns pelo esforço e dedicação em avançar até essa etapa tão importante: segurança e autenticação! 🎉 Você já tem uma base sólida, com endpoints funcionando, integração com banco e até alguns testes bônus passando — isso é ótimo e mostra que você está no caminho certo!
 
 ---
 
-## 🚨 Análise dos Principais Problemas e Como Corrigir
+## 🎯 O que você já mandou muito bem
 
-### 1. Estrutura do Projeto e Organização dos Arquivos
+- **Endpoints de usuários** (registro, login, logout e exclusão) estão funcionando e passando vários testes essenciais, incluindo criação correta e login com JWT válido.
+- **Agentes e casos** estão bem implementados, com CRUD funcionando e validações razoáveis.
+- Você já implementou filtragens básicas e alguns filtros avançados (como status e agente) que passaram nos testes bônus. Isso mostra que seu domínio sobre manipulação de dados está bom!
+- Uso correto do Knex para queries, migrations criadas, seeds populando tabelas, e estrutura geral do projeto está quase lá.
 
-**Problema:**  
-O teste indicou que sua estrutura de arquivos não segue o padrão esperado, e vários arquivos essenciais para esta etapa estão ausentes ou com nomes diferentes. Por exemplo:
+---
 
-- Você tem `usersRoutes.js` e `usersRepository.js` no lugar de `authRoutes.js` e `usuariosRepository.js`.
-- Não há pastas nem arquivos para `authController.js`, `casosRoutes.js`, `casosController.js`, `middlewares/authMiddleware.js` que são obrigatórios.
-- Não há arquivo `INSTRUCTIONS.md` para documentação.
+## 🚨 Pontos importantes que precisam de atenção para destravar sua nota
 
-**Impacto:**  
-Sem essa organização padronizada, o sistema não consegue encontrar as rotas, controllers e middlewares corretos, o que causa falhas em autenticação, proteção de rotas e manipulação dos dados de usuários, agentes e casos.
+### 1. Estrutura de Diretórios e Arquivos
 
-**Exemplo esperado:**
+Aqui temos um ponto crítico: a estrutura de pastas e arquivos **não está seguindo o padrão exigido** pelo desafio, e isso impacta diretamente na execução dos testes e na organização do seu projeto.
 
-```bash
-routes/
-├── agentesRoutes.js
-├── casosRoutes.js
-└── authRoutes.js
+- Você tem um arquivo `usersRoutes.js` e `usersRepository.js`, mas o desafio pede que o nome seja **`authRoutes.js`** e **`usuariosRepository.js`**.  
+- O arquivo `authRoutes.js` e `usuariosRepository.js` **não estão presentes** no seu repositório, o que causa falha nos testes relacionados aos usuários.
+- O arquivo `INSTRUCTIONS.md` não está presente, e ele é obrigatório para documentar o fluxo de autenticação e uso do JWT.
+- No seu `server.js`, você importa `usersRoutes.js` ao invés de `authRoutes.js` (que deveria existir).
 
-controllers/
-├── agentesController.js
-├── casosController.js
-└── authController.js
+**Por que isso é tão importante?**  
+A estrutura correta é a base para que o sistema funcione como esperado, que os testes encontrem os arquivos e que a aplicação seja escalável e de fácil manutenção. Além disso, a organização correta ajuda a evitar problemas de importação e execução.
 
-repositories/
-├── agentesRepository.js
-├── casosRepository.js
-└── usuariosRepository.js
+**Exemplo do que está errado no seu `server.js`:**
 
-middlewares/
-└── authMiddleware.js
-
-utils/
-└── errorHandler.js
+```js
+const usersRoutes = require('./routes/usersRoutes.js'); // deveria ser authRoutes.js
+app.use(usersRoutes);
 ```
 
-**Sugestão:**  
-Reorganize seus arquivos seguindo a estrutura acima. Isso vai garantir que suas rotas e controllers sejam carregadas corretamente e que o middleware de autenticação seja aplicado nas rotas protegidas.  
+**O correto seria:**
 
-Recomendo fortemente assistir a este vídeo para entender a arquitetura MVC e organização de projetos Node.js, que vai facilitar muito seu desenvolvimento:  
-👉 [Arquitetura MVC em Node.js - Refatoração e Boas Práticas](https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s)
+```js
+const authRoutes = require('./routes/authRoutes.js');
+app.use(authRoutes);
+```
+
+**Recomendo fortemente que você assista a este vídeo para entender a arquitetura MVC e organização de projetos Node.js:**  
+https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s
 
 ---
 
-### 2. Validações no Cadastro de Usuários
+### 2. Validação de Dados no Registro de Usuários
 
-**Problema:**  
-Os testes falharam para várias validações no registro de usuários, como:
+Os testes falharam ao tentar criar usuários com dados inválidos, especialmente para:
 
 - Nome vazio ou nulo
 - Email vazio ou nulo
-- Senha vazia, muito curta, sem números, sem caracteres especiais, sem letras maiúsculas/minúsculas
-- Email já em uso
-- Campos extras ou faltantes no payload
+- Senha vazia, curta, sem números, sem caractere especial, sem letra maiúscula, sem letras
+- Campos extras ou faltantes
 
-**Por que isso está acontecendo?**  
-No código enviado, não há evidência de validações robustas para o cadastro de usuários. Além disso, o arquivo `authController.js` e o repositório `usuariosRepository.js` não foram entregues, ou estão ausentes, o que sugere que essas regras não foram implementadas ou não estão sendo aplicadas corretamente.
-
-**Exemplo de validação usando Zod para senha (que você já tem na dependência):**
+Analisando seu `authController.js`, percebi que a validação está muito superficial:
 
 ```js
-const { z } = require('zod');
+if(!name || !email || !password){
+  return next(errorResponse(res,401,"Bad Request"))
+}
+```
 
-const userSchema = z.object({
-  nome: z.string().min(1, "Nome é obrigatório"),
-  email: z.string().email("Email inválido"),
-  senha: z.string()
-    .min(8, "Senha deve ter no mínimo 8 caracteres")
-    .regex(/[a-z]/, "Senha deve conter letra minúscula")
-    .regex(/[A-Z]/, "Senha deve conter letra maiúscula")
-    .regex(/[0-9]/, "Senha deve conter número")
-    .regex(/[^a-zA-Z0-9]/, "Senha deve conter caractere especial"),
+Aqui você só checa se os campos existem, mas não valida o formato ou regras específicas da senha, nem se o nome ou email estão vazios (string vazia é truthy). Também não há verificação para caracteres especiais, números, letras maiúsculas/minúsculas.
+
+**Por que isso é importante?**  
+Garantir a qualidade dos dados é fundamental para segurança e integridade do sistema. Além disso, os testes esperam respostas 400 para esses casos, e você está retornando 401, que é código para "não autorizado", não para erro de validação.
+
+**Como melhorar?**  
+Use uma biblioteca de validação (como `zod` que você já tem instalada) para criar um schema que valide os campos com as regras exigidas. Por exemplo, para senha:
+
+- Mínimo 8 caracteres
+- Pelo menos uma letra minúscula
+- Pelo menos uma letra maiúscula
+- Pelo menos um número
+- Pelo menos um caractere especial
+
+Exemplo de validação com regex:
+
+```js
+const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+if (!senhaRegex.test(password)) {
+  return errorResponse(res, 400, "Senha não atende aos requisitos de segurança");
+}
+```
+
+Além disso, verifique se o nome e email não são strings vazias:
+
+```js
+if (typeof name !== 'string' || name.trim() === '') {
+  return errorResponse(res, 400, "Nome é obrigatório e não pode ser vazio");
+}
+```
+
+Para o email, use um regex simples ou uma lib para validar formato.
+
+---
+
+### 3. Uso incorreto das variáveis de ambiente no JWT e bcrypt
+
+No seu `authController.js`, notei que você está usando a variável de ambiente errada para o segredo do JWT:
+
+```js
+const token = jwt.sign({id: user.id, name:user.name, email:user.email}, process.env.JWT_PASSWORD,{
+  expiresIn: "1d"
 });
-
-async function registerUser(req, res) {
-  try {
-    const data = userSchema.parse(req.body);
-    // continuar com cadastro...
-  } catch (e) {
-    return res.status(400).json({ error: e.errors });
-  }
-}
 ```
 
-**Recomendo assistir a este vídeo feito pelos meus criadores que explica autenticação, incluindo validação de senha e segurança:**  
-👉 [Conceitos Básicos de Autenticação](https://www.youtube.com/watch?v=Q4LQOfYwujk)
+O correto, conforme o enunciado, é usar `process.env.JWT_SECRET`.
 
----
-
-### 3. Middleware de Autenticação e Proteção de Rotas
-
-**Problema:**  
-Os testes indicam que as rotas de agentes e casos não estão protegidas corretamente e retornam `401 Unauthorized` quando não há token ou quando o token é inválido. Isso sugere que você não implementou ou não aplicou o middleware de autenticação nas rotas.
-
-**Por que isso ocorre?**  
-No seu `server.js`, você só está importando `usersRoutes.js` e não está aplicando nenhum middleware para validar o token JWT nos endpoints sensíveis.
-
-**Como corrigir?**
-
-- Crie um middleware `authMiddleware.js` que faça:
+Além disso, no middleware de autenticação:
 
 ```js
-const jwt = require('jsonwebtoken');
+jwt.verify(token.process.env.JWT_SECRET, (err)=>{
+  if(err){
+    return errorResponse(res,400,"Token invalido");
+  }
+})
+```
 
-function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: "Token não fornecido" });
+Aqui você está tentando acessar `token.process.env.JWT_SECRET`, que não faz sentido — o correto é:
 
-  const token = authHeader.split(' ')[1];
-  if (!token) return res.status(401).json({ error: "Token inválido" });
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // dados do usuário autenticado
+```js
+jwt.verify(token, process.env.JWT_SECRET, (err)=>{
+  if(err){
+    return errorResponse(res,401,"Token inválido");
+  } else {
     next();
-  } catch (err) {
-    return res.status(401).json({ error: "Token inválido ou expirado" });
   }
+});
+```
+
+Note que o `next()` deve ser chamado dentro do callback, para garantir que a verificação tenha sido concluída.
+
+**Por que isso é crítico?**  
+Se o segredo do JWT estiver incorreto ou mal referenciado, a verificação dos tokens falhará, e o middleware não protegerá as rotas como esperado. Isso explica os erros 401 que você recebeu ao tentar acessar rotas protegidas sem token válido.
+
+**Recomendo este vídeo excelente, feito pelos meus criadores, que explica JWT e bcrypt na prática:**  
+https://www.youtube.com/watch?v=L04Ln97AwoY
+
+---
+
+### 4. Resposta dos Endpoints e Mensagens de Erro
+
+- No login, você retorna apenas `"Login OK"` em vez de um JSON com o token:
+
+```js
+res.status(200).json("Login OK")
+```
+
+O teste espera:
+
+```json
+{
+  "access_token": "token aqui"
 }
-
-module.exports = authMiddleware;
 ```
 
-- No seu `server.js`, importe e aplique este middleware nas rotas protegidas:
+Você deve retornar o token no formato correto:
 
 ```js
-const authMiddleware = require('./middlewares/authMiddleware');
-const agentesRoutes = require('./routes/agentesRoutes');
-const casosRoutes = require('./routes/casosRoutes');
-
-app.use('/agentes', authMiddleware, agentesRoutes);
-app.use('/casos', authMiddleware, casosRoutes);
+res.status(200).json({ access_token: token });
 ```
 
-Isso garante que somente usuários autenticados possam acessar essas rotas.
-
-Para entender melhor como JWT funciona na prática, recomendo:  
-👉 [JWT na prática - Autenticação com Node.js](https://www.youtube.com/watch?v=keS0JWOypIU)
+- Nos erros, você usa `next(errorResponse(...))`, mas seu `errorResponse` já envia a resposta, então usar `next()` pode causar problemas ou mensagens duplicadas.
 
 ---
 
-### 4. Migration e Tabela de Usuários
+### 5. Falta de implementação de alguns endpoints obrigatórios
 
-**Problema:**  
-Sua migration cria a tabela `users` com colunas `name`, `email` e `password`, enquanto no enunciado e no restante do código espera-se a tabela `usuarios` com colunas `id`, `nome`, `email` e `senha`.
+- O endpoint `DELETE /users/:id` (exclusão de usuário) não foi encontrado no seu código.
+- O endpoint `POST /auth/logout` também não está implementado.
+- O endpoint `/usuarios/me` (bônus) não está implementado.
 
-**Por que isso importa?**  
-Se o nome da tabela e colunas não batem com o que o código espera, as queries para cadastro e login vão falhar ou não encontrar os dados.
-
-**Como corrigir?**  
-Altere sua migration para criar a tabela `usuarios` com os nomes corretos:
-
-```js
-exports.up = function (knex) {
-  return knex.schema.createTable("usuarios", (table) => {
-    table.increments("id").primary();
-    table.string("nome").notNullable();
-    table.string("email").unique().notNullable();
-    table.string("senha").notNullable();
-  });
-  // continuar com as outras tabelas...
-};
-```
+Esses endpoints são importantes para cumprir o escopo do desafio.
 
 ---
 
-### 5. Uso do `.env` e Variáveis de Ambiente
+### 6. Testes bônus que falharam
 
-**Problema:**  
-Seu `knexfile.js` está configurado para conectar ao banco no host `127.0.0.1` na porta `5433`, o que está correto para seu `docker-compose.yml`. Porém, não vi o arquivo `.env` no seu código, e isso pode causar problemas para o Knex e seu JWT.
+Você passou alguns bônus legais, como filtragem por status e agente, mas falhou em outros:
 
-**Por que isso importa?**  
-Sem o `.env` com as variáveis `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` e `JWT_SECRET`, o sistema não consegue conectar ao banco nem gerar/verificar tokens JWT.
+- Busca de agente responsável por caso
+- Busca de casos por palavras-chave
+- Ordenação por data de incorporação
+- Mensagens de erro customizadas para argumentos inválidos
+- Endpoint `/usuarios/me`
 
-**Sugestão:**  
-Crie um arquivo `.env` na raiz do projeto com:
-
-```
-POSTGRES_USER=seu_usuario
-POSTGRES_PASSWORD=sua_senha
-POSTGRES_DB=nome_do_banco
-JWT_SECRET=uma_chave_secreta_super_segura
-```
-
-E certifique-se de carregar o `.env` no início do `server.js`:
-
-```js
-require('dotenv').config();
-```
-
-Para entender melhor a configuração do banco com Docker e Knex, veja:  
-👉 [Configuração de Banco de Dados com Docker e Knex](https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s)
+Essas falhas indicam que algumas funcionalidades extras ainda precisam ser implementadas ou corrigidas.
 
 ---
 
-### 6. Documentação no INSTRUCTIONS.md
+## 📋 Resumo dos principais pontos para focar:
 
-**Problema:**  
-O arquivo `INSTRUCTIONS.md` está ausente. Ele é obrigatório para explicar como registrar, logar, enviar o token no header, e o fluxo de autenticação.
-
-**Por que isso importa?**  
-Sem essa documentação, quem for usar sua API não saberá como autenticar ou proteger as rotas, tornando o sistema inviável em produção.
-
-**O que incluir?**  
-- Como fazer `POST /auth/register` com exemplo de payload.
-- Como fazer `POST /auth/login` e receber o token.
-- Como enviar o token no header `Authorization: Bearer <token>`.
-- Explicação do fluxo de autenticação.
+- Corrigir a **estrutura de diretórios e nomes de arquivos** para seguir exatamente o padrão exigido (usar `authRoutes.js`, `usuariosRepository.js`, etc).
+- Implementar validação completa e correta dos dados no registro de usuários, principalmente para senha, nome e email, retornando erros 400 adequados.
+- Corrigir o uso das variáveis de ambiente para o segredo JWT (`JWT_SECRET`) tanto no `authController` quanto no `authMiddleware`.
+- Ajustar o middleware para chamar `next()` somente após a verificação do token ser concluída, e ajustar os códigos de status e mensagens de erro.
+- Ajustar a resposta do login para retornar o token JWT no formato correto `{ access_token: "token" }`.
+- Implementar os endpoints faltantes (`DELETE /users/:id`, `POST /auth/logout`, `/usuarios/me`).
+- Criar o arquivo `INSTRUCTIONS.md` com a documentação exigida.
+- Revisar e implementar os bônus que faltaram para melhorar sua nota.
 
 ---
 
-## 📋 Resumo dos Testes que Falharam e Causas Prováveis
+## Algumas dicas extras para você:
 
-| Teste Falhado                                     | Causa Provável                                                                                  |
-|--------------------------------------------------|------------------------------------------------------------------------------------------------|
-| Usuário com nome, email ou senha vazio ou nulo   | Falta de validação adequada no controller de usuários (`authController.js` ausente ou incompleto) |
-| Senha com requisitos não atendidos                | Falta de validação da senha (min 8 caracteres, letras, números, caracteres especiais)           |
-| Email já em uso                                   | Falta de checagem no banco para evitar duplicidade antes de inserir usuário                     |
-| Campo extra ou faltante no payload                | Falta de validação estrita do corpo da requisição                                              |
-| Rotas de agentes e casos sem autenticação         | Middleware de autenticação não implementado ou não aplicado nas rotas                           |
-| Migration com nome de tabela e colunas incorretos| Migration cria tabela `users`, mas código espera `usuarios` com campos `nome` e `senha`         |
-| Falta do arquivo INSTRUCTIONS.md                   | Documentação da API não entregue                                                               |
+- Use o `zod` para validação de dados, ele vai facilitar muito e evitar erros manuais.
+- Sempre teste suas rotas com o Postman ou Insomnia para garantir que os retornos estão no formato esperado.
+- Leia a documentação do `jsonwebtoken` para entender melhor como assinar e verificar tokens.
+- Cuide da segurança: nunca exponha seu segredo JWT no código, sempre use `.env` e `process.env`.
+- Para organizar melhor o projeto, siga o padrão MVC e mantenha os arquivos nos lugares certos.
 
 ---
 
-## 💡 Dicas Finais para Você, fonteBean!
+## Recursos recomendados para você:
 
-Você já tem uma base sólida e conseguiu fazer várias funcionalidades importantes funcionarem. Agora, o foco é:
+- **Arquitetura MVC em Node.js (organização de pastas):**  
+https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s
 
-- **Organizar seu projeto conforme o padrão pedido** para que tudo funcione integrado.
-- **Implementar validações rigorosas no cadastro de usuários** para garantir segurança e evitar dados inválidos.
-- **Criar e aplicar o middleware de autenticação JWT** nas rotas protegidas.
-- **Ajustar sua migration para usar os nomes corretos de tabela e colunas**.
-- **Criar a documentação do fluxo de autenticação no INSTRUCTIONS.md**.
-- **Garantir que o arquivo `.env` esteja presente e configurado corretamente**.
+- **JWT e autenticação com Node.js:**  
+https://www.youtube.com/watch?v=L04Ln97AwoY
 
-Continue praticando e ajustando esses pontos, pois eles são fundamentais para a segurança e profissionalismo da sua API!
+- **Validação de dados com Zod (exemplo prático):**  
+https://zod.dev/
 
----
-
-## Recursos Recomendados para Você 🚀
-
-- [Arquitetura MVC em Node.js - Refatoração e Boas Práticas](https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s)  
-- [Configuração de Banco de Dados com Docker e Knex](https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s)  
-- [Conceitos Básicos de Autenticação (vídeo feito pelos meus criadores)](https://www.youtube.com/watch?v=Q4LQOfYwujk)  
-- [JWT na prática - Autenticação com Node.js](https://www.youtube.com/watch?v=keS0JWOypIU)  
-- [Knex Query Builder - Guia detalhado](https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s)
+- **Configuração de Banco de Dados com Docker e Knex:**  
+https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s  
+https://www.youtube.com/watch?v=dXWy_aGCW1E
 
 ---
 
-## 📌 Resumo Rápido para Melhorar
+## Últimas palavras
 
-- [ ] Organize os arquivos e pastas conforme o padrão exigido (routes, controllers, repositories, middlewares, etc).
-- [ ] Implemente validações completas para cadastro de usuários (nome, email, senha com regras).
-- [ ] Crie e aplique o middleware de autenticação JWT nas rotas `/agentes` e `/casos`.
-- [ ] Corrija a migration para criar a tabela `usuarios` com os campos corretos (`nome`, `email`, `senha`).
-- [ ] Garanta que o `.env` esteja configurado e carregado corretamente.
-- [ ] Crie o arquivo `INSTRUCTIONS.md` com a documentação da API e fluxo de autenticação.
+FonteBean, você está muito próximo de entregar uma aplicação segura e profissional! 💪 Não desanime com as falhas, elas são parte do processo de aprendizado. Corrigindo esses pontos, sua nota vai melhorar muito e seu código ficará muito mais robusto e alinhado com o que o mercado espera.
 
----
+Continue firme, revise com calma cada ponto, e não hesite em usar os recursos que te indiquei. Você está fazendo um ótimo trabalho e logo vai colher os frutos dessa dedicação! 🌟
 
-Parabéns pelo esforço até aqui, fonteBean! Cada desafio é uma oportunidade de aprender e crescer. Continue firme que você está no caminho certo para se tornar um mestre em Node.js e segurança de APIs! 💪✨
+Se precisar de ajuda para entender algum ponto específico, me chama que a gente destrincha juntos! 😉
 
-Qualquer dúvida, estou aqui para ajudar! 🚀
-
-Um abraço do seu Code Buddy! 🤖👊
+Abraços e sucesso! 🚓👮‍♂️✨
 
 > Caso queira tirar uma dúvida específica, entre em contato com o Chapter no nosso [discord](https://discord.gg/DryuHVnz).
 
