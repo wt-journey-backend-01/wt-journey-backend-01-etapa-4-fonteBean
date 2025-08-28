@@ -1,46 +1,53 @@
 <sup>Esse é um feedback gerado por IA, ele pode conter erros.</sup>
 
-Você tem 5 créditos restantes para usar o sistema de feedback AI.
+Você tem 4 créditos restantes para usar o sistema de feedback AI.
 
 # Feedback para fonteBean:
 
 Nota final: **27.5/100**
 
-Olá, fonteBean! 👋🚀
-
-Primeiramente, parabéns por chegar até aqui na Etapa 4, que é um grande passo para transformar sua API em uma aplicação profissional, segura e robusta! 🎉 Você conseguiu implementar várias funcionalidades importantes e, o que é muito legal, passou em testes base de funcionalidades essenciais como criação e login de usuários, proteção de rotas com JWT e operações CRUD para agentes e casos com autenticação. Além disso, mandou bem em alguns testes bônus relacionados a filtragem e busca, o que mostra que você está indo além do esperado! 🌟
-
-Agora, vamos juntos analisar os pontos onde seu código pode melhorar para destravar todos os testes e garantir que sua aplicação esteja realmente pronta para produção. Vou detalhar os principais problemas, explicar o porquê deles acontecerem, e mostrar caminhos para corrigir. Vamos nessa? 😉
+Olá, fonteBean! 🚀 Que jornada você está trilhando, parabéns por chegar até aqui! Vamos juntos destrinchar seu código, celebrar as conquistas e entender o que pode ser melhorado para deixar sua API tinindo de profissional e segura. 💪✨
 
 ---
 
-## 📋 Testes que Falharam e Análise Detalhada
+## 🎉 Primeiramente, os pontos fortes que você mandou muito bem!
 
-### 1. Falhas em validação de criação de usuário (muitos erros 400)
+- Sua estrutura de diretórios está praticamente alinhada com o esperado! Você tem as pastas `controllers/`, `repositories/`, `routes/`, `middlewares/`, `db/` e `utils/`. Isso é essencial para manter o projeto organizado e escalável.  
+- O uso do `bcryptjs` para hash de senha está correto e bem aplicado no `authController.js`.  
+- Você implementou corretamente a geração do token JWT no login, incluindo o tempo de expiração (1 dia).  
+- O middleware de autenticação (`authMiddleware.js`) está verificando o token JWT e protegendo as rotas `/agentes` e `/casos` como esperado.  
+- Os controllers de agentes e casos estão bem estruturados, com tratamento de erros e validações básicas.  
+- Você conseguiu passar vários testes base importantes, como criação, login, logout e exclusão de usuários, e proteção das rotas com JWT. Isso mostra que a base está sólida!
 
-Você recebeu muitos erros 400 ao tentar criar usuários com dados inválidos, como nome vazio ou nulo, email vazio/nulo, senha com regras não atendidas (curta, sem números, sem maiúsculas, sem caracteres especiais), e também ao tentar criar com campos extras ou faltantes.
+Além disso, parabéns por implementar funcionalidades bônus como:  
+- Endpoint `/usuarios/me` para retornar dados do usuário logado.  
+- Filtragem e ordenação nos endpoints de agentes e casos.  
+- Mensagens de erro personalizadas e uso do Zod para validação do usuário no cadastro.
 
-**Por que isso aconteceu?**
+---
 
-No seu `authController.js`, você usa o Zod para validar o corpo da requisição no `signUp`:
+## 🚨 Agora vamos analisar os testes que falharam para entender o que está acontecendo e como melhorar.
+
+### 1. Falhas nas validações de criação de usuário (muitos erros 400)
+
+Os testes falharam para casos como:  
+- Nome vazio ou nulo  
+- Email vazio ou nulo  
+- Senha vazia, curta, sem números, sem letra maiúscula, sem caractere especial, etc.  
+- Email já em uso  
+- Campos extras ou faltantes no payload
+
+**O que está acontecendo?**
+
+No seu `authController.js`, você usa o Zod para validar o objeto do usuário na função `signUp`, o que é ótimo! Porém, o problema está na forma como o erro é tratado e na resposta enviada.
+
+Veja esse trecho do seu código:
 
 ```js
-const userSchema = z.object({
-  nome: z.string().min(1, "Nome é obrigatório"),
-  email: z.string().email("Email inválido"),
-  senha: z.string()
-    .min(8, "Senha deve ter no mínimo 8 caracteres")
-    .regex(/[a-z]/, "Senha deve conter letra minúscula")
-    .regex(/[A-Z]/, "Senha deve conter letra maiúscula")
-    .regex(/[0-9]/, "Senha deve conter número")
-    .regex(/[^a-zA-Z0-9]/, "Senha deve conter caractere especial"),
-}).strict();
-```
-
-Essa parte parece correta, mas o problema está na forma como você está retornando o erro para o cliente. Você faz:
-
-```js
-catch(error){
+try {
+  const userData = userSchema.parse(req.body);
+  // ...
+} catch(error) {
   if (error instanceof z.ZodError) {
     return errorResponse(res, 400, error.errors.map(e => e.message).join(", "));
   }
@@ -48,34 +55,73 @@ catch(error){
 }
 ```
 
-Porém, a função `errorResponse` no seu projeto (não fornecida, mas normalmente é um helper para enviar respostas de erro) pode não estar interrompendo a execução corretamente dentro do `catch`. Além disso, no seu arquivo `routes/authRoutes.js` você tem:
+Aqui você chama `errorResponse(res, 400, ...)` **dentro do `catch`**, mas no seu código `errorResponse` é uma função que já envia resposta HTTP. O problema é que no seu código `errorResponse` está sendo usado **dentro de um `return next(errorResponse(...))` em outros lugares**, mas aqui você está usando direto no `catch`. A confusão do fluxo pode estar fazendo com que o teste não capture corretamente o status 400.
+
+Além disso, você não está validando explicitamente se há campos extras no payload. O `userSchema` usa `.strict()`, que deve rejeitar campos extras, mas o erro deve ser tratado adequadamente.
+
+**Sugestão para corrigir:**
+
+- Garanta que o `errorResponse` envie a resposta e interrompa o fluxo.  
+- Evite usar `next()` com `errorResponse` que já envia resposta, para não causar comportamento inesperado.  
+- No `signUp`, apenas envie a resposta diretamente no `catch`.
+
+Exemplo de ajuste no `signUp`:
 
 ```js
-router.post('/auth/register', authController.signUp);
+async function signUp(req, res) {
+  try {
+    const userData = userSchema.parse(req.body);
+    const userExists = await userRepository.findUserByEmail(userData.email);
+    if (userExists) {
+      return errorResponse(res, 400, "User already exists");
+    }
+    const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS || 10));
+    const hashedPassword = await bcrypt.hash(userData.senha, salt);
+    userData.senha = hashedPassword;
+    const newUser = await userRepository.createUser(userData);
+
+    if (!newUser) {
+      return errorResponse(res, 400, "Bad Request");
+    }
+    res.status(201).json({
+      message: "User created",
+      user: newUser,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors.map(e => e.message).join(", ") });
+    }
+    return res.status(500).json({ error: "Erro interno no servidor" });
+  }
+}
 ```
 
-Mas o endpoint esperado é `POST /auth/register` (sem repetir `/auth` no path). Isso pode causar problemas nos testes que esperam o endpoint correto.
+> Isso evita confusão entre `next()` e envio direto da resposta, garantindo que o teste capture o status code correto.
 
-**Outro ponto importante:** No seu arquivo `routes/authRoutes.js`, você escreveu as rotas assim:
+---
+
+### 2. Rotas em `authRoutes.js` com paths incorretos
+
+No seu arquivo `routes/authRoutes.js` você declarou as rotas assim:
 
 ```js
 router.post('/auth/login', authController.login);
-router.get('/auth/usuarios',authMiddleware, authController.getUsers);
+router.get('/auth/usuarios', authMiddleware, authController.getUsers);
 router.get('/auth/usuarios/me', authMiddleware, authController.getMe);
 router.post('/auth/register', authController.signUp);
 ```
 
-Ou seja, você está definindo rotas com prefixo `/auth/auth/login`, `/auth/auth/register` etc., porque no `server.js` você faz:
+Mas no `server.js` você já usa o prefixo `/auth`:
 
 ```js
-app.use('/auth',authRoutes);
+app.use('/auth', authRoutes);
 ```
 
-Então o caminho completo fica `/auth/auth/login`, que não é o esperado. Isso pode ser a causa de muitos erros nos testes que esperam `/auth/login` e `/auth/register`.
+Isso faz com que as rotas fiquem com caminho `/auth/auth/login`, `/auth/auth/usuarios`, etc.
 
-**Como corrigir?**
+**O que deve ser feito?**
 
-No arquivo `routes/authRoutes.js`, defina as rotas sem o prefixo `/auth`:
+No `authRoutes.js`, as rotas devem ser declaradas sem o prefixo `/auth`, pois ele já é aplicado no `server.js`. Exemplo:
 
 ```js
 router.post('/login', authController.login);
@@ -84,85 +130,64 @@ router.get('/usuarios/me', authMiddleware, authController.getMe);
 router.post('/register', authController.signUp);
 ```
 
-Assim, com o `app.use('/auth', authRoutes)`, as rotas finais ficarão `/auth/login`, `/auth/register`, etc., como esperado.
+Assim, as URLs finais ficarão corretas: `/auth/login`, `/auth/usuarios`, etc.
 
 ---
 
-### 2. Endpoint `DELETE /users/:id` não implementado
+### 3. Método DELETE para exclusão de usuários não implementado
 
-No enunciado, você deveria criar a rota para exclusão de usuários:
+No enunciado, é pedido o endpoint `DELETE /users/:id` para deletar usuários. No seu código, não encontrei nenhuma rota ou controller que implemente essa funcionalidade.
 
-- `DELETE /users/:id`
+Isso causa falha nos testes que verificam exclusão de usuários.
 
-No seu projeto, não encontrei essa rota nem no `authRoutes.js` nem em outro lugar.
+**O que fazer?**
 
-Além disso, seu repositório `usuariosRepository.js` não possui função para deletar usuário, apenas `findAll`, `findUserByEmail`, `findUserById` e `createUser`.
+- Criar rota DELETE em `authRoutes.js` (ou em `routes/usuariosRoutes.js` se preferir separar) para `/users/:id`.  
+- Implementar controller que chame `usuariosRepository.deleteUser(id)` e retorne status 204 no sucesso, 404 se usuário não existir.
 
-**Por que isso é importante?**
+Exemplo:
 
-Os testes base esperam que você implemente a exclusão de usuários, e a ausência dessa funcionalidade gera falha nos testes.
-
-**Como corrigir?**
-
-- Implemente em `usuariosRepository.js` uma função `deleteUser(id)` que faça:
-
-```js
-async function deleteUser(id) {
-  try {
-    const deleted = await db('usuarios').where({ id }).del();
-    return deleted > 0;
-  } catch (err) {
-    console.error(err);
-    return false;
-  }
-}
-```
-
-- Crie no `authController.js` uma função para deletar usuário:
-
-```js
-async function deleteUser(req, res) {
-  const userId = req.params.id;
-  const success = await userRepository.deleteUser(userId);
-  if (!success) {
-    return errorResponse(res, 404, "Usuário não encontrado");
-  }
-  res.status(204).send();
-}
-```
-
-- Adicione a rota no `authRoutes.js`:
+No `authRoutes.js`:
 
 ```js
 router.delete('/users/:id', authMiddleware, authController.deleteUser);
 ```
 
----
-
-### 3. Logout não implementado
-
-O enunciado pede um endpoint para logout:
-
-- `POST /auth/logout`
-
-No seu código, não encontrei essa rota nem a função correspondente no controller.
-
-**Por que isso é importante?**
-
-Embora o logout com JWT seja geralmente feito no cliente apenas descartando o token, para o teste é esperado que você implemente esse endpoint, possivelmente invalidando o token (por exemplo, mantendo uma blacklist, ou simulando logout).
-
-**Como corrigir?**
-
-Você pode implementar um logout simples que retorne 200 ou 204, e no futuro, para produção, implementar blacklist de tokens.
-
 No `authController.js`:
 
 ```js
-async function logout(req, res) {
-  // Como JWT é stateless, para este desafio, apenas retornamos sucesso.
+async function deleteUser(req, res) {
+  const userId = req.params.id;
+  const deleted = await userRepository.deleteUser(userId);
+  if (!deleted) {
+    return errorResponse(res, 404, "Usuário não encontrado");
+  }
   res.status(204).send();
 }
+
+module.exports = {
+  // ... outros exports
+  deleteUser,
+};
 ```
+
+---
+
+### 4. Logout não implementado
+
+O enunciado pede um endpoint `POST /auth/logout` que invalide o JWT.
+
+No seu código não encontrei essa rota nem controller.
+
+**Observação importante:** Como JWT é stateless, para invalidar um token você precisaria implementar blacklist ou alterar o segredo, o que não foi pedido explicitamente. Mas o teste espera que o endpoint exista e retorne status 200 ou 204.
+
+**O que fazer?**
+
+- Criar a rota `POST /logout` em `authRoutes.js`.  
+- Criar controller que retorne status 200 ou 204 sem corpo (ou mensagem simples).  
+- Opcional: invalidar token no cliente (não obrigatório para o backend).
+
+Exemplo:
 
 No `authRoutes.js`:
 
@@ -170,201 +195,146 @@ No `authRoutes.js`:
 router.post('/logout', authMiddleware, authController.logout);
 ```
 
+No `authController.js`:
+
+```js
+async function logout(req, res) {
+  // Como JWT é stateless, só responder com status 200 ou 204
+  res.status(204).send();
+}
+
+module.exports = {
+  // ... outros exports
+  logout,
+};
+```
+
 ---
 
-### 4. Resposta inconsistente no método PATCH para agentes
+### 5. Na migration, falta validação da senha conforme regras
 
-No `agentesController.js`, no método `patchAgente`, você retorna:
-
-```js
-res.status(200).json(agenteAtualizado[0]);
-```
-
-Mas no método `updateAgente` (PUT), você retorna:
+Na migration que cria a tabela `usuarios`, você definiu:
 
 ```js
-res.status(200).json(agenteAtualizado);
+table.string("senha").notNullable();
 ```
 
-No seu `agentesRepository.js`, o método `updateAgente` retorna um array com o agente atualizado (por causa do `.returning('*')`). No PATCH, você está retornando apenas o primeiro elemento, no PUT está retornando o array inteiro.
+Mas o enunciado pede que a senha tenha no mínimo 8 caracteres, com letras maiúsculas, minúsculas, números e caracteres especiais.
 
 **Por que isso importa?**
 
-Os testes esperam consistência na estrutura da resposta. Retornar um array ou um objeto direto pode causar falhas.
+O banco de dados não consegue impor essas regras diretamente (pelo menos não facilmente com `knex` e `PostgreSQL`), mas a validação deve ser feita na aplicação (que você fez com o Zod no controller).
 
-**Como corrigir?**
+Então, aqui está ok, pois a validação está na aplicação.
 
-Padronize para sempre retornar o objeto do agente atualizado, assim:
+---
+
+### 6. Resposta da criação do usuário
+
+No seu `authController.js`, na função `signUp` você responde assim:
 
 ```js
+res.status(201).json({
+  message: "User created",
+  user: newUser
+})
+```
+
+O enunciado pede que o usuário criado seja retornado com os dados inalterados mais o `id`. Está correto, mas cuidado para não retornar a senha hasheada no JSON. Isso pode ser um problema de segurança e pode gerar falha nos testes.
+
+**Sugestão:**
+
+Retire a senha do objeto antes de enviar:
+
+```js
+const userResponse = { ...newUser };
+delete userResponse.senha;
+res.status(201).json(userResponse);
+```
+
+---
+
+### 7. Na função `patchAgente` você retorna `agenteAtualizado[0]`, mas `updateAgente` retorna array?
+
+No seu `agentesController.js`:
+
+```js
+const agenteAtualizado = await agentesRepository.updateAgente(agenteId, dadosParaAtualizar);
+if (!agenteAtualizado) {
+  return errorResponse(res, 404, "Agente não encontrado.");
+}
 res.status(200).json(agenteAtualizado[0]);
 ```
 
-No método `updateAgente` do controller, ajuste para:
+Mas na função `updateAgente` do repository você retorna `query` que já é um array de resultados.
 
-```js
-res.status(200).json(agenteAtualizado[0]);
-```
+Está correto, mas em outras funções você retorna só o objeto. Seja consistente para evitar confusão.
 
 ---
 
-### 5. Resposta inconsistente no método PATCH para casos
+### 8. Testes bônus falharam — endpoints de filtragem e busca
 
-Mesma situação do item anterior ocorre em `patchCaso` no `casosController.js`:
+Você implementou várias funcionalidades avançadas, mas os testes bônus falharam. Isso pode ser causado por pequenos detalhes, como:  
 
-```js
-res.status(200).json(casoAtualizado[0]);
-```
-
-Mas no método `updateCaso` (PUT), você retorna:
-
-```js
-res.status(200).json(update[0]);
-```
-
-Aqui está consistente, mas vale revisar todo o fluxo para garantir que sempre retorne o objeto correto.
+- Parâmetros de query mal tratados (exemplo: `searchEmCaso` exige `q` e retorna 404 se ausente).  
+- Ordenação e filtragem podem estar funcionando, mas talvez os testes esperem formatos específicos.  
+- Mensagens de erro precisam ser exatamente iguais ao esperado.  
+- A rota `/usuarios/me` está implementada, mas o teste pode esperar que o usuário retorne sem a senha.
 
 ---
 
-### 6. Falta do arquivo INSTRUCTIONS.md
+## ⚠️ Pontos de atenção na estrutura de diretórios e arquivos
 
-O enunciado pede que você crie o arquivo `INSTRUCTIONS.md` com documentação das rotas de autenticação, exemplos de uso do token JWT e fluxo de autenticação.
+- O arquivo `INSTRUCTIONS.md` está ausente. Ele é obrigatório e deve conter a documentação de registro, login, envio do token JWT, e fluxo de autenticação.  
+- No `package.json`, o campo `"main"` está apontando para `"knexfile.js"`, o que não faz sentido. O `"main"` geralmente aponta para o arquivo inicial da aplicação, como `server.js`. Isso pode causar problemas em algumas ferramentas.  
+- No seu `knexfile.js`, a porta do banco está como `5433` na dev, que deve estar alinhada com o `docker-compose.yml` (que mapeia `5433:5432`). Está correto, só fique atento para o ambiente de produção e testes.  
+- Em `repositories/usuariosRepository.js`, você exporta uma função `findById` que na verdade é importada do `agentesRepository`. Isso pode causar confusão, pois você não tem uma função `findUserById` definida no seu repositório de usuários. Isso pode estar causando falha no endpoint `/usuarios/me`.
 
-No seu projeto, não encontrei esse arquivo.
+Sugestão: Ajuste para:
 
-**Por que isso importa?**
-
-Além de ser um requisito obrigatório, documentar seu projeto é uma prática essencial para que outros desenvolvedores (ou você mesmo no futuro) entendam como usar a API.
-
-**Como corrigir?**
-
-Crie o arquivo `INSTRUCTIONS.md` na raiz do projeto com explicações claras, por exemplo:
-
-```md
-# Instruções de Autenticação
-
-## Registro de Usuário
-- Endpoint: POST /auth/register
-- Corpo:
-  ```json
-  {
-    "nome": "Seu Nome",
-    "email": "email@exemplo.com",
-    "senha": "SenhaSegura1!"
+```js
+async function findUserById(id) {
+  try {
+    const user = await db('usuarios').where({ id }).first();
+    return user || false;
+  } catch (err) {
+    return false;
   }
-  ```
-- Resposta: 201 Created com dados do usuário.
-
-## Login
-- Endpoint: POST /auth/login
-- Corpo:
-  ```json
-  {
-    "email": "email@exemplo.com",
-    "senha": "SenhaSegura1!"
-  }
-  ```
-- Resposta: 200 OK com token JWT:
-  ```json
-  {
-    "access_token": "token.jwt.aqui"
-  }
-  ```
-
-## Uso do Token JWT
-- Envie o token no header Authorization em rotas protegidas:
-  ```
-  Authorization: Bearer <token>
-  ```
-
-## Logout
-- Endpoint: POST /auth/logout
-- Requer token válido.
-- Resposta: 204 No Content.
-
+}
 ```
 
----
-
-### 7. Variável de ambiente JWT_SECRET não encontrada
-
-Embora você use `process.env.JWT_SECRET` em vários lugares, não vi o arquivo `.env` enviado. Se essa variável não estiver definida, o JWT não será gerado ou validado corretamente, causando erros de autenticação.
-
-**Como corrigir?**
-
-- Crie um arquivo `.env` na raiz do projeto com:
-
-```
-JWT_SECRET="seuSegredoSuperSecreto"
-POSTGRES_USER=seu_usuario
-POSTGRES_PASSWORD=sua_senha
-POSTGRES_DB=seu_banco
-SALT_ROUNDS=10
-```
-
-- Garanta que o `.env` está carregado no início do seu `server.js` ou `knexfile.js` com:
-
-```js
-require('dotenv').config();
-```
+E exporte corretamente.
 
 ---
 
-### 8. Estrutura do projeto e rotas
+## 📚 Recursos que recomendo para você aprimorar seu código
 
-Sua estrutura está muito próxima do esperado, parabéns! Só uma observação:
-
-- O arquivo `INSTRUCTIONS.md` está ausente.
-- No `routes/authRoutes.js`, como já comentado, as rotas estão com prefixo repetido `/auth/auth/...`.
-- No `repositories/usuariosRepository.js` você exporta `findById` que é importado do `agentesRepository.js`, mas não é usado. Pode causar confusão, remova para clareza.
-
----
-
-## 🎯 Recomendações para você seguir
-
-- Ajuste as rotas em `authRoutes.js` para remover o prefixo `/auth` dos caminhos.
-- Implemente as rotas e funções para `DELETE /users/:id` e `POST /auth/logout`.
-- Padronize as respostas JSON para retornar objetos, não arrays, nos endpoints de atualização.
-- Crie o arquivo `INSTRUCTIONS.md` com a documentação da API e do fluxo de autenticação.
-- Garanta que o `.env` esteja configurado e carregado.
-- Teste localmente usando ferramentas como Postman para garantir que os endpoints funcionam conforme esperado.
+- Para entender melhor a autenticação com JWT e bcrypt, veja esse vídeo feito pelos meus criadores que explica muito bem os conceitos e a implementação prática: https://www.youtube.com/watch?v=L04Ln97AwoY  
+- Para ajustar a estrutura do projeto e entender a arquitetura MVC no Node.js, este vídeo é excelente: https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s  
+- Se quiser entender melhor como validar dados com Zod e tratar erros corretamente, recomendo explorar a documentação oficial do Zod (https://github.com/colinhacks/zod) e exemplos práticos.  
+- Para aprimorar o uso do Knex e suas migrations, veja: https://www.youtube.com/watch?v=dXWy_aGCW1E
 
 ---
 
-## 📚 Recursos que vão te ajudar muito
+## 📝 Resumo rápido dos principais pontos para focar:
 
-- Para entender melhor autenticação e JWT, recomendo fortemente este vídeo, feito pelos meus criadores, que fala muito bem sobre os conceitos básicos e fundamentais da cibersegurança:  
-https://www.youtube.com/watch?v=Q4LQOfYwujk
-
-- Para aprofundar no uso prático de JWT em Node.js, veja este vídeo:  
-https://www.youtube.com/watch?v=keS0JWOypIU
-
-- Para aprender a usar o bcrypt corretamente e entender hashing de senhas, este vídeo é ótimo:  
-https://www.youtube.com/watch?v=L04Ln97AwoY
-
-- Se precisar revisar a organização do projeto em MVC para Node.js, veja este vídeo:  
-https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s
-
-- Para garantir que seu banco PostgreSQL está bem configurado com Docker e Knex, confira:  
-https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s
+- Corrigir as rotas em `authRoutes.js` para não repetir o prefixo `/auth`.  
+- Ajustar o tratamento de erros no `signUp` para enviar o status 400 corretamente sem usar `next()` com `errorResponse`.  
+- Implementar os endpoints obrigatórios que faltam: `DELETE /users/:id` e `POST /auth/logout`.  
+- Ajustar o repositório de usuários para ter `findUserById` correto e evitar importações erradas.  
+- Remover a senha do usuário retornado nas respostas para evitar exposição.  
+- Criar o arquivo `INSTRUCTIONS.md` com a documentação pedida.  
+- Revisar mensagens de erro para que estejam exatamente iguais às esperadas nos testes.  
+- Garantir que o JWT_SECRET e SALT_ROUNDS estejam definidos corretamente no `.env`.  
+- Revisar o campo `"main"` no `package.json` para apontar para `server.js` ao invés de `knexfile.js`.
 
 ---
 
-## 📝 Resumo rápido dos pontos para focar
+FonteBean, você já está com uma base muito boa! Com esses ajustes você vai destravar a maior parte dos testes e seu projeto ficará ainda mais robusto e profissional. Continue firme, pois segurança e autenticação são temas que exigem atenção, e você está no caminho certo! 🚀🔥
 
-- Corrigir rotas em `authRoutes.js` para remover `/auth` do path, evitando duplicidade.
-- Implementar `DELETE /users/:id` e `POST /auth/logout` com as funções correspondentes.
-- Padronizar respostas JSON para atualização (PUT e PATCH) retornando objeto, não array.
-- Criar o arquivo `INSTRUCTIONS.md` com documentação clara dos endpoints e autenticação.
-- Garantir que o `.env` existe e contém `JWT_SECRET` e outras variáveis necessárias.
-- Remover importações e funções desnecessárias para manter o código limpo.
-- Testar todos os endpoints manualmente para garantir que retornam os status e respostas corretas.
+Se precisar, volte aqui para tirar dúvidas ou para revisar as próximas versões do seu código. Estou na torcida por você! 🤜🤛
 
----
-
-FonteBean, você está no caminho certo! Com esses ajustes seu sistema vai ficar muito mais sólido, seguro e alinhado com os requisitos. Continue firme, a prática leva à perfeição! Se precisar, volte aos vídeos recomendados para consolidar o entendimento. Estou aqui torcendo por você! 💪✨
-
-Abraços e bons códigos! 👨‍💻👩‍💻
+Abraços e bons códigos! 👩‍💻👨‍💻✨
 
 > Caso queira tirar uma dúvida específica, entre em contato com o Chapter no nosso [discord](https://discord.gg/DryuHVnz).
 
