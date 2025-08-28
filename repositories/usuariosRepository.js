@@ -46,9 +46,20 @@ async function createUser(user) {
   }
 }
 
+async function deleteUser(id) {
+  try {
+    const deleted = await db('usuarios').where({ id }).del();
+    return deleted > 0;
+  } catch (err) {
+    console.error(err);
+    return false;
+  }
+}
+
 module.exports = {
   findUserByEmail,
   findById,
+  deleteUser,
   createUser,
   findAll
 }
