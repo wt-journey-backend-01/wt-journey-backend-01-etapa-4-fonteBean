@@ -1,41 +1,32 @@
 <sup>Esse é um feedback gerado por IA, ele pode conter erros.</sup>
 
-Você tem 7 créditos restantes para usar o sistema de feedback AI.
+Você tem 6 créditos restantes para usar o sistema de feedback AI.
 
 # Feedback para fonteBean:
 
-Nota final: **60.9/100**
+Nota final: **61.1/100**
 
-Olá, fonteBean! 👋✨
+Olá, fonteBean! 👋🚀
 
-Primeiramente, parabéns pelo esforço e pela entrega da sua API! 🎉 Você conseguiu implementar várias funcionalidades importantes, e isso é um grande passo rumo a uma aplicação segura e profissional. Vamos juntos analisar os pontos fortes e onde ainda podemos melhorar para alcançar a nota máxima! 🚀
+Antes de mais nada, parabéns pelo empenho e pelo progresso que você já fez! 🎉 Você conseguiu implementar várias funcionalidades essenciais, como o cadastro, login, logout, exclusão de usuários, além das operações completas sobre agentes e casos. Isso é super importante e mostra que você está no caminho certo!
 
----
-
-## 🎉 Pontos Positivos e Conquistas Bônus
-
-- Você implementou corretamente o cadastro de usuários com hash de senha usando bcrypt, e o login que gera um JWT válido. Isso é fundamental e você acertou!  
-- O logout e a exclusão de usuários estão funcionando bem.  
-- As rotas de agentes e casos estão estruturadas, e você aplicou o middleware de autenticação para proteger as rotas, o que é excelente para segurança.  
-- Os testes bônus que passaram mostram que você fez um bom trabalho na filtragem de casos por status e agente, o que demonstra domínio na manipulação dos dados.  
-- A organização do seu projeto está muito boa, seguindo a arquitetura MVC, com pastas claras para controllers, repositories, rotas e middlewares.  
-
-Parabéns por essas conquistas! 👏
+Além disso, você conseguiu passar testes bônus importantes relacionados à filtragem simples de casos por status e agente, o que revela que seu código já tem uma boa base para filtros e buscas. Muito bom! 👏
 
 ---
 
-## 🚩 Análise dos Testes que Falharam e Pontos para Melhorar
+## Vamos analisar juntos os pontos que precisam de atenção para você avançar ainda mais! 🔍
 
-Você teve vários testes falhando relacionados a validações no cadastro de usuários e proteção das rotas. Vamos destrinchar esses erros para entender o que está acontecendo.
+### 1. Testes de criação de usuário com validações falharam (erros 400 em vários casos)
 
----
+Os testes que falharam aqui são:
 
-### 1. Falhas nas Validações do Cadastro de Usuários (Testes USERS com erro 400)
+- Receber erro 400 ao criar usuário com nome vazio, nulo, email vazio, nulo, senha inválida (curta, sem número, sem caractere especial, sem letra maiúscula, sem letra minúscula), campo extra ou faltante.
 
-**Erro:** Recebe erro 400 ao tentar criar usuário com campos vazios, nulos, senha sem requisitos (comprimento, números, letras maiúsculas, caracteres especiais), e também quando o email já está em uso.
+**Por que isso está acontecendo?**
 
-**Causa raiz no seu código:**  
-No seu `authController.js`, você está usando o Zod para validar o corpo da requisição:
+Você usou o `zod` para validar os dados do usuário no `authController.js`, o que é ótimo! Porém, o problema está na validação dos campos extras e faltantes, e no tratamento das mensagens de erro para esses casos.
+
+Veja seu código:
 
 ```js
 const userSchema = z.object({
@@ -50,96 +41,78 @@ const userSchema = z.object({
 });
 ```
 
-Você faz a validação com:
+Esse schema está correto para validar os campos básicos, mas o problema é que ele **não está proibindo campos extras** no corpo da requisição. O Zod, por padrão, permite campos extras se você não especificar o contrário.
+
+Além disso, você deve garantir que todos os campos obrigatórios estejam presentes — o que seu schema já faz — mas os testes provavelmente esperam que, se faltar algum campo, você retorne erro 400 com mensagem clara.
+
+**Como corrigir?**
+
+Você pode usar `.strict()` no schema para bloquear campos extras:
 
 ```js
-const userData = userSchema.parse(req.body);
+const userSchema = z.object({
+  nome: z.string().min(1, "Nome é obrigatório"),
+  email: z.string().email("Email inválido"),
+  senha: z.string()
+    .min(8, "Senha deve ter no mínimo 8 caracteres")
+    .regex(/[a-z]/, "Senha deve conter letra minúscula")
+    .regex(/[A-Z]/, "Senha deve conter letra maiúscula")
+    .regex(/[0-9]/, "Senha deve conter número")
+    .regex(/[^a-zA-Z0-9]/, "Senha deve conter caractere especial"),
+}).strict();
 ```
 
-**Por que os testes falham?**  
-O método `.parse()` do Zod lança uma exceção se a validação falha, mas no seu código você não está tratando essa exceção. Isso faz com que o servidor retorne um erro 500 (erro não tratado) em vez de um 400 com a mensagem adequada.
+Isso fará com que o Zod rejeite qualquer campo não especificado no schema, gerando erro que você já trata.
 
-**Como corrigir?**  
-Você precisa capturar o erro de validação e retornar um erro 400 com a mensagem correspondente. Por exemplo:
+Além disso, no seu catch, você retorna as mensagens concatenadas:
 
 ```js
-async function signUp (req,res){
-  try {
-    const userData = userSchema.parse(req.body);
-    // resto do código...
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return errorResponse(res, 400, error.errors.map(e => e.message).join(", "));
-    }
-    return errorResponse(res, 500, "Erro interno no servidor");
-  }
+if (error instanceof z.ZodError) {
+  return errorResponse(res, 400, error.errors.map(e => e.message).join(", "));
 }
 ```
 
-Assim, o cliente receberá um erro 400 com mensagens claras do que está errado no input, atendendo aos testes que esperam esse comportamento.
+Isso está ótimo!
 
 ---
 
-### 2. Falha no Retorno do Token JWT no Login
+### 2. Middleware de autenticação não está atribuindo o usuário corretamente no `req.user`
 
-No seu `authController.js`, você retorna o token assim:
-
-```js
-res.status(200).json({"access-token": token})
-```
-
-**Problema:** Os testes esperam que o token venha na chave `"access_token"` (com underline), conforme especificado no enunciado:
-
-```json
-{
-  "access_token": "token aqui"
-}
-```
-
-**Correção:** Altere para:
-
-```js
-res.status(200).json({ access_token: token });
-```
-
-Isso é crucial para que os testes reconheçam o token e validem a autenticação.
-
----
-
-### 3. Middleware de Autenticação Não Adiciona `req.user`
-
-Seu middleware `authMiddleware.js` verifica o token, mas não adiciona os dados do usuário autenticado no `req.user`, conforme pedido no desafio:
+No seu `authMiddleware.js` você tem:
 
 ```js
 jwt.verify(token, process.env.JWT_SECRET, (err)=>{
   if(err){
     return errorResponse(res,401,"Token invalido");
   }
+  req.user = user;
   next();
-})
+}) 
 ```
 
-**Por que isso é importante?**  
-Muitos endpoints seguros precisam saber quem é o usuário logado para aplicar regras de autorização ou retornar dados personalizados.
+Aqui está o problema: você está tentando atribuir `user` ao `req.user`, mas **a variável `user` não existe nesse escopo**.
 
-**Como corrigir?**  
-Altere para:
+O callback do `jwt.verify` recebe dois parâmetros: `(err, decoded)` onde `decoded` é o payload decodificado do token.
+
+Você deve fazer assim:
 
 ```js
-jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
   if (err) {
     return errorResponse(res, 401, "Token inválido");
   }
-  req.user = user; // adiciona os dados do usuário no request
+  req.user = decoded; // Aqui você atribui o payload decodificado
   next();
 });
 ```
 
+Essa falha provavelmente está causando o problema dos testes que retornam status 401 ao tentar acessar rotas protegidas sem o token ou com token inválido, porque seu middleware não está populando corretamente o usuário autenticado.
+
 ---
 
-### 4. Rotas Protegidas Não Estão Aplicando Middleware de Autenticação
+### 3. Rotas protegidas não estão aplicando o middleware de autenticação
 
-No seu `server.js`, você tem:
+No seu `server.js`, você registrou as rotas assim:
 
 ```js
 app.use(authRoutes);
@@ -147,54 +120,32 @@ app.use(agentesRoutes);
 app.use(casosRoutes);
 ```
 
-Mas não há aplicação explícita do middleware `authMiddleware` nas rotas de `/agentes` e `/casos`. Isso pode estar permitindo acesso sem autenticação, causando falha nos testes que esperam **401 Unauthorized** ao acessar essas rotas sem token.
+Porém, o requisito pede que as rotas de `/agentes` e `/casos` sejam protegidas pelo middleware de autenticação.
 
-**Como corrigir?**  
-Você pode aplicar o middleware globalmente para essas rotas assim:
+Atualmente, não vejo aplicação do middleware `authMiddleware` nessas rotas.
+
+Você precisa aplicar o middleware para proteger essas rotas. Por exemplo:
 
 ```js
-const authMiddleware = require('./middlewares/authMiddleware.js');
-
 app.use('/agentes', authMiddleware, agentesRoutes);
 app.use('/casos', authMiddleware, casosRoutes);
+app.use(authRoutes); // AuthRoutes normalmente ficam abertas para login e registro
 ```
 
-Ou, se preferir, aplicar dentro dos arquivos de rotas, mas o mais comum e claro é no `server.js`.
+Ou, dentro dos arquivos de rotas (`agentesRoutes.js` e `casosRoutes.js`), você pode aplicar o middleware em cada rota individualmente.
+
+Sem isso, qualquer pessoa pode acessar essas rotas sem autenticação, o que viola o requisito e causa falha nos testes de autorização (status 401).
 
 ---
 
-### 5. Endpoint `/auth/sign` ao invés de `/auth/register`
+### 4. Repositório de usuários (`usuariosRepository.js`) - problema no método `findUserByEmail`
 
-No enunciado, o endpoint para registro de usuários deve ser:
-
-```
-POST /auth/register
-```
-
-Mas no seu `authRoutes.js`, você definiu:
-
-```js
-router.post('/auth/sign', authController.signUp);
-```
-
-**Isso pode causar falha nos testes**, que esperam `/auth/register`.
-
-**Correção:** Altere para:
-
-```js
-router.post('/auth/register', authController.signUp);
-```
-
----
-
-### 6. Repositório de Usuários: Uso incorreto do `.returning()` no `findUserByEmail`
-
-No seu `usuariosRepository.js`:
+Veja seu código:
 
 ```js
 async function findUserByEmail(email) {
   try{
-    const [user] = await db('usuarios').where({email:email}).returning("*");
+    const [user] = await db('usuarios').where({email:email}).first();
     if(!user){
       return false;
     }
@@ -205,65 +156,129 @@ async function findUserByEmail(email) {
 }
 ```
 
-O método `.returning()` é usado em inserts/updates para retornar colunas após a operação, **não em selects**.
+Aqui você está usando a desestruturação `[user]` junto com `.first()`, que já retorna um único objeto, não um array.
 
-**Isso pode estar causando problemas na busca do usuário.**
+Isso gera que `user` será `undefined`.
 
-**Correção:** Remova `.returning("*")` da consulta:
+O correto é simplesmente:
 
 ```js
-const [user] = await db('usuarios').where({ email: email }).first();
+async function findUserByEmail(email) {
+  try {
+    const user = await db('usuarios').where({ email }).first();
+    if (!user) {
+      return false;
+    }
+    return user;
+  } catch (err) {
+    return false;
+  }
+}
 ```
 
-Assim, você busca o usuário corretamente.
+Esse erro pode causar falhas na autenticação, porque o usuário nunca será encontrado.
 
 ---
 
-### 7. Falta do Arquivo `INSTRUCTIONS.md`
+### 5. Endpoint `/usuarios/me` não implementado
 
-O enunciado pede que você entregue o arquivo `INSTRUCTIONS.md` com documentação dos endpoints de autenticação, uso do token JWT e fluxo de autenticação.
+O teste bônus que falhou pede um endpoint que retorne os dados do usuário autenticado.
 
-No seu envio, esse arquivo está ausente.
+Esse endpoint não está presente no seu código.
 
-**Importância:** Documentar é fundamental para que outros desenvolvedores (e avaliadores) entendam como usar sua API.
+Para implementar, crie uma rota e controller, por exemplo:
+
+Na `routes/authRoutes.js`:
+
+```js
+router.get('/usuarios/me', authMiddleware, authController.getMe);
+```
+
+No `authController.js`:
+
+```js
+async function getMe(req, res) {
+  const userId = req.user.id;
+  const user = await userRepository.findUserById(userId);
+  if (!user) {
+    return errorResponse(res, 404, "Usuário não encontrado");
+  }
+  res.status(200).json(user);
+}
+```
+
+E no `usuariosRepository.js`, implemente `findUserById`:
+
+```js
+async function findUserById(id) {
+  try {
+    const user = await db('usuarios').where({ id }).first();
+    return user || false;
+  } catch (err) {
+    return false;
+  }
+}
+```
 
 ---
 
-## 💡 Recomendações de Aprendizado
+### 6. Documentação INSTRUCTIONS.md não encontrada no seu repositório
 
-Para cada ponto acima, recomendo fortemente os seguintes vídeos, que vão te ajudar a entender e corrigir os problemas:
+O arquivo `INSTRUCTIONS.md` não está presente no seu repositório, o que é obrigatório para o desafio.
 
-- Sobre validação e tratamento de erros com Zod: [https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s](https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s) (Refatoração e Boas Práticas)  
-- Sobre autenticação JWT e uso correto:  
-  - Conceitos básicos de autenticação (feito pelos meus criadores): [https://www.youtube.com/watch?v=Q4LQOfYwujk](https://www.youtube.com/watch?v=Q4LQOfYwujk)  
-  - JWT na prática: [https://www.youtube.com/watch?v=keS0JWOypIU](https://www.youtube.com/watch?v=keS0JWOypIU)  
-  - Uso combinado de JWT e bcrypt: [https://www.youtube.com/watch?v=L04Ln97AwoY](https://www.youtube.com/watch?v=L04Ln97AwoY)  
-- Para entender melhor queries com Knex, especialmente `.where()` e `.returning()`: [https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s](https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s)  
-- Para configurar banco com Docker e Knex, caso precise revisar ambiente: [https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s](https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s)
+Esse arquivo deve conter instruções claras de como registrar, logar, enviar o token JWT no header `Authorization`, e o fluxo de autenticação esperado.
+
+Sem ele, o requisito falha.
 
 ---
 
-## ⚠️ Resumo dos Principais Pontos para Ajustar
+## Pontos extras e melhorias que você pode fazer:
 
-- Trate os erros de validação do Zod para enviar respostas 400 com mensagens claras (use try/catch).  
-- Corrija o nome da chave do token JWT para `access_token` no login.  
-- No middleware de autenticação, adicione os dados do usuário decodificados em `req.user`.  
-- Aplique o middleware de autenticação nas rotas `/agentes` e `/casos` para proteger corretamente as rotas e passar nos testes de autorização.  
-- Corrija o endpoint de registro para `/auth/register` (não `/auth/sign`).  
-- Ajuste a query no `findUserByEmail` para não usar `.returning()` em uma seleção.  
-- Adicione o arquivo `INSTRUCTIONS.md` com a documentação solicitada.  
+- Considere implementar o logout invalidando o token (ex: usando blacklist ou tokens curtos).
+- Use variáveis de ambiente para configurar a porta do servidor, para facilitar deploys.
+- Ajuste mensagens de erro para serem mais amigáveis e consistentes.
+- No middleware de autenticação, você pode usar `try/catch` com `jwt.verify` síncrono para simplificar.
+- Organize seu `server.js` para aplicar middlewares globais e rotas de forma clara.
 
 ---
 
-## 🌟 Mensagem Final
+## Resumo dos principais pontos para focar 📝
 
-fonteBean, você está no caminho certo! Seu código mostra que você entendeu os conceitos principais de rotas, controllers, repositórios, hashing de senha e JWT. Com alguns ajustes pontuais nas validações, middleware e rotas, sua API vai ficar muito mais robusta e alinhada com o que o projeto pede.
+- Corrija o middleware de autenticação para atribuir corretamente `req.user` com o payload decodificado do JWT.
+- Proteja as rotas de `/agentes` e `/casos` aplicando o middleware de autenticação.
+- Ajuste o `usuariosRepository.js` no método `findUserByEmail` para não desestruturar com array.
+- Torne o schema do Zod `.strict()` para bloquear campos extras e garantir erros 400 em casos de campos extras/faltantes.
+- Implemente o endpoint `/usuarios/me` para retornar dados do usuário autenticado.
+- Crie o arquivo `INSTRUCTIONS.md` com a documentação solicitada.
+- Revise as mensagens de erro para garantir consistência e clareza.
+- Teste a aplicação localmente para garantir que as validações e proteções funcionam como esperado.
 
-Continue praticando esses detalhes, pois eles fazem toda a diferença na qualidade e segurança da aplicação. Estou aqui torcendo pelo seu sucesso, e você tem total capacidade para alcançar uma nota alta! 💪🔥
+---
 
-Qualquer dúvida, só chamar que a gente resolve juntos. Vamos nessa! 🚀✨
+## Recursos recomendados para você se aprofundar 📚
 
-Abraços do seu Code Buddy 🤖💙
+- Sobre autenticação JWT e bcrypt, recomendo muito este vídeo, feito pelos meus criadores, que explica os conceitos básicos e fundamentais da cibersegurança: https://www.youtube.com/watch?v=Q4LQOfYwujk
+- Para entender JWT na prática, este vídeo é excelente: https://www.youtube.com/watch?v=keS0JWOypIU
+- Para aprender a usar bcrypt e JWT juntos, veja este tutorial prático: https://www.youtube.com/watch?v=L04Ln97AwoY
+- Para entender melhor a estrutura MVC e organização do projeto Node.js, confira: https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s
+- Caso precise revisar a configuração do banco com Knex e Docker, veja estes vídeos:
+  - Configuração do PostgreSQL com Docker: https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s
+  - Migrations com Knex.js: https://www.youtube.com/watch?v=dXWy_aGCW1E
+  - Query Builder do Knex: https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s
+
+---
+
+## Conclusão final 🚀
+
+fonteBean, você já tem uma base muito boa e funcionalidades importantes funcionando! Agora, com esses ajustes que conversamos, sua API ficará muito mais sólida, segura e alinhada com os requisitos. 
+
+Não desanime com as falhas nos testes — elas são um ótimo guia para você focar no que falta. Corrigindo esses pontos, você vai destravar muitas funcionalidades e garantir uma aplicação realmente profissional e segura.
+
+Continue firme, revise cada ponto com calma e teste bastante! Estou aqui torcendo pelo seu sucesso! 💪🔥
+
+Se precisar, pode me chamar para mais dúvidas, vamos juntos nessa jornada! 😉
+
+Abraços e bons códigos! 👨‍💻👩‍💻✨
 
 > Caso queira tirar uma dúvida específica, entre em contato com o Chapter no nosso [discord](https://discord.gg/DryuHVnz).
 
