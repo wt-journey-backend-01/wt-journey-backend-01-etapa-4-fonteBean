@@ -56,7 +56,7 @@ async function signUp(req, res) {
     if (!newUser) {
       return errorResponse(res, 400, "Bad Request");
     }
-    const userResponse = {user:newUser};
+    const userResponse = {...newUser};
     delete userResponse.senha;
     res.status(201).json(userResponse);
    

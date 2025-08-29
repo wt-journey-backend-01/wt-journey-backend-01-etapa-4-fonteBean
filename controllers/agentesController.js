@@ -1,9 +1,12 @@
 const agentesRepository = require('../repositories/agentesRepository')
 const errorResponse = require('../utils/errorHandler')
-const express = require('express');
+const {z} = require('zod');
 
 
-
+const agenteSchema = z.object({
+  nome: z.string().min(1, "Nome é obrigatório"),
+  cargo: z.string().min(1,"Cargo é obrigatório"),
+}).strict();
 
 async function getAgentes(req, res) {
  try{
