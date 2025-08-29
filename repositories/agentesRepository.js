@@ -1,14 +1,17 @@
 const db = require("../db/db")
 
 
-async function findAll() {
-    try{
-      const agentes = await db("agentes").select("*");
-      return agentes;
-    }catch(err){
-      console.log(err);
-      return false  ;
-   }
+async function findAll(filter = {}) {
+  let query = db('agentes');
+  if (filter.cargo) {
+    query = query.where('cargo', filter.cargo);
+  }
+  if (filter.sort) {
+    const direction = filter.sort.startsWith('-') ? 'desc' : 'asc';
+    const column = filter.sort.replace('-', '');
+    query = query.orderBy(column, direction);
+  }
+  return await query.select('*');
 }
 
 

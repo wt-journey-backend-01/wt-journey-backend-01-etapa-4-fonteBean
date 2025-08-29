@@ -6,38 +6,27 @@ const express = require('express');
 
 
 async function getAgentes(req, res) {
-    let agentes =  await agentesRepository.findAll();
-
-    const cargo = req.query.cargo;
-    const sort = req.query.sort;
-
-    if (cargo) {
-        agentes = agentes.filter(a => a.cargo === cargo);
-
-        if (agentes.length === 0) {
-            return errorResponse(res,404,`Agentes com cargo "${cargo}" não encontrados.`) ;
-        }
+ try{
+  const {cargo,sort} = req.query;
+  const filter = {};
+  if(cargo) filter.cargo = cargo;
+  if(sort) filter.sort = sort;
+  let agentes =  await agentesRepository.findAll(filter);
+  if (!agentes || agentes.length === 0) {
+      return errorResponse(res, 404, "Nenhum caso encontrado com os filtros aplicados");
     }
 
-    if (sort === 'dataDeIncorporacao') {
-        agentes.sort((a, b) => {
-            if (a.dataDeIncorporacao < b.dataDeIncorporacao) return -1;
-            if (a.dataDeIncorporacao > b.dataDeIncorporacao) return 1;
-            return 0;
-        });
-    } else if (sort === '-dataDeIncorporacao') {
-        agentes.sort((a, b) => {
-            if (a.dataDeIncorporacao > b.dataDeIncorporacao) return -1;
-            if (a.dataDeIncorporacao < b.dataDeIncorporacao) return 1;
-            return 0;
-        });
-    }
-
-    res.status(200).json(agentes);
+  res.status(200).json(agentes);
+ }catch(err){
+    return errorResponse(res,500,"Erro interno");
+ }
 }
 
 async function getAgenteById(req,res){
-  const agenteId = req.params.id;
+  const agenteId = Number(req.params.id);
+  if (isNaN(agenteId)) {
+   return errorResponse(res, 400, "ID inválido");
+  }
   const agente = await agentesRepository.findById(agenteId);
   if(!agente){
        return errorResponse(res,404,"Agente nao encontrado");
@@ -81,7 +70,10 @@ async function createAgente(req, res) {
 }
 
 async function updateAgente(req, res) {
-  const agenteId = req.params.id;
+ const agenteId = Number(req.params.id);
+  if (isNaN(agenteId)) {
+    return errorResponse(res, 400, "ID inválido");
+  }
   const { nome, cargo, dataDeIncorporacao } = req.body;
 
   if ('id' in req.body) {
@@ -113,12 +105,15 @@ async function updateAgente(req, res) {
     return errorResponse(res,404,"Agente não encontrado.");
   }
 
-  res.status(200).json(agenteAtualizado);
+  res.status(200).json(agenteAtualizado[0]);
 }
 
 
 async function patchAgente(req, res) {
-  const agenteId = req.params.id;
+  const agenteId = Number(req.params.id);
+  if (isNaN(agenteId)) {
+    return errorResponse(res, 400, "ID inválido");
+  }
   const { nome, cargo, dataDeIncorporacao } = req.body;
 
   if ('id' in req.body) {
@@ -157,7 +152,10 @@ async function patchAgente(req, res) {
 
 
 async function deleteAgente(req,res){
-  const agenteId =req.params.id;
+  const agenteId = Number(req.params.id);
+  if(isNaN(agenteId)) {
+   return errorResponse(res, 400, "ID inválido");
+  }
     
   const sucesso = await agentesRepository.deleteAgente(agenteId);
   if(!sucesso){

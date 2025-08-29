@@ -32,7 +32,10 @@ async function getCasos(req,res){
 }
 
 async function getCaso(req,res){
-  const casoId = req.params.id;
+  const casoId = Number(req.params.id);
+if (isNaN(casoId)) {
+  return errorResponse(res, 400, "ID inválido");
+}
   const caso = await casosRepository.findById(casoId);
   if(!caso){
    return  errorResponse(res,404,"caso nao encontrado")
@@ -41,7 +44,10 @@ async function getCaso(req,res){
 }
 
 async function getAgentebyCaso(req,res){
-  const casoId = req.params.id;
+  const casoId = Number(req.params.id);
+if (isNaN(casoId)) {
+  return errorResponse(res, 400, "ID inválido");
+}
   const caso = await casosRepository.findById(casoId);
   if(!caso){
    return  errorResponse(res,404,"caso nao encontrado")
@@ -94,7 +100,10 @@ async function createCaso(req,res){
 }
 
 async function deleteCaso(req,res){
-    const casoId = req.params.id;
+   const casoId = Number(req.params.id);
+if (isNaN(casoId)) {
+  return errorResponse(res, 400, "ID inválido");
+}
    const sucesso = await casosRepository.deleteCaso(casoId);
    if(!sucesso){
     return errorResponse(res,404,`Erro ao deletar caso ${casoId}`)
