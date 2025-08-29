@@ -1,285 +1,241 @@
 <sup>Esse é um feedback gerado por IA, ele pode conter erros.</sup>
 
-Você tem 2 créditos restantes para usar o sistema de feedback AI.
+Você tem 1 créditos restantes para usar o sistema de feedback AI.
 
 # Feedback para fonteBean:
 
 Nota final: **52.0/100**
 
-Olá, fonteBean! 🚀
+Olá, fonteBean! 🚀 Que jornada incrível você está trilhando ao construir essa API segura com Node.js, Express e PostgreSQL! Antes de mais nada, parabéns por implementar a autenticação via JWT, o hashing das senhas com bcrypt e a proteção das rotas com middleware! 🎉 Isso mostra um excelente domínio dos conceitos fundamentais de segurança em APIs.
 
-Primeiramente, parabéns pelo esforço em implementar uma API REST com autenticação JWT, hashing de senhas e proteção de rotas! Isso não é trivial, e você já fez um ótimo trabalho em várias partes importantes do projeto. 🎉
-
----
-
-## 🎉 Pontos Positivos e Conquistas Bônus
-
-- Seu cadastro e login de usuários estão funcionando corretamente, com validação de senha usando **zod** e hashing com **bcryptjs**. Isso é fundamental para a segurança da aplicação.
-- O middleware de autenticação está implementado e aplicado nas rotas sensíveis (/agentes e /casos), garantindo que só usuários autenticados possam acessar.
-- Você implementou o endpoint `/usuarios/me` para retornar os dados do usuário logado, que é um bônus valioso.
-- O logout está funcionando, retornando status 204, o que é uma boa prática.
-- O uso do Knex para manipular o banco está correto, com migrations e seeds organizados.
-- A estrutura geral do projeto está alinhada com o esperado, incluindo as pastas de controllers, repositories, middlewares, routes e utils — isso facilita muito a manutenção e escalabilidade.
+Também é ótimo ver que você estruturou seu projeto seguindo o padrão MVC, separando controllers, repositories, middlewares e rotas — isso facilita muito a manutenção e escalabilidade do código. E parabéns pelos testes de autenticação que passaram, mostrando que o núcleo da segurança está funcionando! 👏
 
 ---
 
-## 🚨 Análise dos Testes que Falharam e Problemas Identificados
-
-Você teve uma série de testes base que falharam, principalmente relacionados às operações com agentes e casos (CRUD, filtros, erros de validação e status codes). Vamos destrinchar os principais problemas para você entender o que está acontecendo:
+### 🚨 Agora, vamos analisar juntos os pontos que ainda precisam de atenção para que seu projeto brilhe ainda mais!
 
 ---
 
-### 1. Falhas nos Endpoints de Agentes: criação, listagem, busca, atualização, exclusão e validação de dados
+## 1. Estrutura de Diretórios e Arquivos
 
-**Sintomas:**  
-- Falha ao criar agentes com status 201 e retorno correto dos dados.  
-- Falha ao listar todos os agentes com status 200 e dados corretos.  
-- Falha ao buscar agente por ID com status 200 e dados corretos.  
-- Falha na atualização completa (PUT) e parcial (PATCH) com status 200 e dados atualizados.  
-- Falha na exclusão com status 204.  
-- Erros 400 e 404 em casos de payload incorreto ou agente inexistente/inválido.
-
-**Análise de causa raiz:**  
-Olhando seu `agentesController.js` e `agentesRepository.js`, a lógica parece correta em geral, mas há alguns pontos que podem estar causando os erros:
-
-- **Retorno inconsistente ao criar agente:**  
-  Na função `createAgente`, você faz:
-
-  ```js
-  const create =  await agentesRepository.criarAgente(novoAgente);
-  if(!create){
-    return errorResponse(res,400,"Erro ao criar agente");
-  }
-  res.status(201).json(create[0]);
-  ```
-
-  Isso está correto, mas no repositório `criarAgente` você retorna o resultado de `db("agentes").insert(agente).returning('*')`. Se por algum motivo o insert não retornar o array esperado, pode causar problemas.
-
-- **Retorno inconsistente na atualização parcial (PATCH):**  
-  Na função `patchAgente`, você retorna `agenteAtualizado[0]` mas no `updateAgente` do repositório, você retorna o resultado do `update` com `returning('*')`, que é um array. Se o update não encontrar o agente, retorna `false`. Isso está correto, porém o teste pode estar esperando um objeto, e não um array.  
-
-  **Sugestão:** Sempre garanta que o controller envie um objeto, não um array, para evitar confusão:
-
-  ```js
-  res.status(200).json(agenteAtualizado[0]);
-  ```
-
-  está certo, mas certifique-se de que `agenteAtualizado` não seja `false` ou vazio.
-
-- **Validação de IDs inválidos:**  
-  Você não está validando explicitamente se o `req.params.id` é um número válido antes de consultar o banco. Isso pode gerar erros silenciosos ou comportamentos inesperados quando o ID não for numérico.  
-
-  **Sugestão:** Antes de usar o ID, valide:
-
-  ```js
-  const agenteId = Number(req.params.id);
-  if (isNaN(agenteId)) {
-    return errorResponse(res, 400, "ID inválido");
-  }
-  ```
-
-  Isso ajuda a passar os testes que esperam erro 400 para IDs inválidos.
-
-- **Erro ao filtrar agentes por cargo e ordenar por dataDeIncorporacao:**  
-  Seu filtro e ordenação estão feitos em memória, filtrando o array retornado do banco. Isso funciona, mas pode ser ineficiente e causar inconsistências.  
-
-  **Sugestão:** Realize o filtro e ordenação diretamente na query do banco no repositório, usando Knex. Por exemplo:
-
-  ```js
-  async function findAll(filter = {}) {
-    let query = db('agentes');
-    if (filter.cargo) {
-      query = query.where('cargo', filter.cargo);
-    }
-    if (filter.sort) {
-      const direction = filter.sort.startsWith('-') ? 'desc' : 'asc';
-      const column = filter.sort.replace('-', '');
-      query = query.orderBy(column, direction);
-    }
-    return await query.select('*');
-  }
-  ```
-
-  Assim, você evita carregar tudo e filtrar no controller, o que pode causar problemas em testes que esperam resultados ordenados.
-
----
-
-### 2. Falhas nos Endpoints de Casos: criação, listagem, busca, atualização, exclusão e validação
-
-**Sintomas:**  
-- Falha na criação com status 201 e dados corretos.  
-- Falha na listagem e busca por ID com status 200 e dados corretos.  
-- Falha na atualização completa (PUT) e parcial (PATCH) com status 200 e dados atualizados.  
-- Falha na exclusão com status 204.  
-- Erros 400 e 404 em payload incorreto, agente inexistente ou ID inválido.
-
-**Análise de causa raiz:**  
-Seu `casosController.js` e `casosRepository.js` estão bem estruturados, mas alguns pontos podem estar causando os erros:
-
-- **Validação de ID inválido para casos:**  
-  Assim como nos agentes, você não valida se o ID passado nos parâmetros é um número válido antes de consultar o banco. Isso pode causar falhas nos testes que esperam erro 400 para IDs inválidos.  
-
-  **Sugestão:** Faça validação explícita no início das funções que recebem `req.params.id`:
-
-  ```js
-  const casoId = Number(req.params.id);
-  if (isNaN(casoId)) {
-    return errorResponse(res, 400, "ID inválido");
-  }
-  ```
-
-- **Validação de agente_id na criação e atualização:**  
-  Você verifica se o agente existe, o que é ótimo. Porém, não está validando se o `agente_id` é um número antes da consulta. Se for inválido, a consulta pode falhar silenciosamente.  
-
-  **Sugestão:** Valide que `agente_id` seja número válido antes de consultar.
-
-- **Filtro por status e agente_id no controller:**  
-  Você filtra os casos em memória após buscar todos, o que pode causar problemas de performance e inconsistência.  
-
-  **Sugestão:** Faça o filtro diretamente na query do banco no repositório, passando parâmetros para o método `findAll` ou criando métodos específicos para buscar por status ou agente.
-
----
-
-### 3. Falhas na documentação do endpoint `/usuarios/me`
-
-Você implementou o endpoint e ele está passando no teste bônus, parabéns! 🎉
-
----
-
-### 4. Falhas na documentação e arquivo INSTRUCTIONS.md
-
-O arquivo `INSTRUCTIONS.md` está ausente no seu repositório, conforme o relatório:
+Você está quase lá, mas notei que o arquivo **INSTRUCTIONS.md** não está presente no seu repositório, conforme apontado:
 
 ```
+---
 **O CAMINHO NÃO É UM ARQUIVO NEM UM DIRETÓRIO VÁLIDO NO REPOSITÓRIO DO ALUNO!**
+---
 ```
 
-Esse arquivo é obrigatório para documentar como registrar, logar, enviar o token JWT no header e o fluxo de autenticação esperado.
+Esse arquivo é obrigatório para documentar os endpoints de autenticação, o fluxo de login e como enviar o token JWT no header `Authorization`. A ausência dele pode impactar na experiência de quem usar sua API e também pode ser um requisito para os testes.
 
-**Impacto:**  
-A ausência deste arquivo pode causar perda de pontos importantes, pois é requisito do projeto.
+**Dica:** Crie esse arquivo na raiz do seu projeto, seguindo o modelo esperado, e inclua:
 
-**Sugestão:**  
-Crie o arquivo `INSTRUCTIONS.md` na raiz do projeto com o conteúdo solicitado, por exemplo:
+- Como registrar e logar usuários (exemplo de payload).
+- Como enviar o token JWT no header `Authorization: Bearer <token>`.
+- Descrição do fluxo de autenticação.
 
-```markdown
-# Instruções de Uso da API
-
-## Registro de Usuário
-Endpoint: `POST /auth/register`  
-Body JSON:
-```json
-{
-  "nome": "Seu Nome",
-  "email": "seuemail@exemplo.com",
-  "senha": "Senha123!"
-}
-```
-
-## Login de Usuário
-Endpoint: `POST /auth/login`  
-Body JSON:
-```json
-{
-  "email": "seuemail@exemplo.com",
-  "senha": "Senha123!"
-}
-```
-
-Retorna:
-```json
-{
-  "access_token": "seu.token.jwt.aqui"
-}
-```
-
-## Envio do Token JWT
-Adicione o header `Authorization` nas requisições protegidas:
-```
-Authorization: Bearer <access_token>
-```
-
-## Fluxo de Autenticação
-1. Registrar usuário via `/auth/register`
-2. Fazer login via `/auth/login` para obter o token JWT
-3. Usar o token JWT no header `Authorization` para acessar rotas protegidas `/agentes`, `/casos`, etc.
-4. Fazer logout via `/auth/logout`
-```
+Isso ajuda demais na usabilidade e é um requisito importante!
 
 ---
 
-### 5. Pequenos detalhes que podem melhorar a nota e qualidade
+## 2. Testes Base que Falharam — Análise e Causas Raiz
 
-- **Variáveis de ambiente:**  
-  Certifique-se de que o `.env` contenha a variável `JWT_SECRET` e `SALT_ROUNDS`. Isso é essencial para o funcionamento correto do JWT e bcrypt.
+Você teve várias falhas em testes relacionados aos recursos de **agentes** e **casos**. Vou destacar os principais grupos e o que pode estar causando esses problemas:
 
-- **Status code no logout:**  
-  Você está retornando 204 no logout, o que está correto, mas o teste aceita 200 ou 204. Pode ser interessante explicitar o status 200 para evitar confusões.
+### 2.1. Falhas em Criação, Listagem, Busca, Atualização e Deleção de Agentes e Casos
 
-- **Remoção de senha no retorno do usuário:**  
-  No `signUp`, você faz:
+Testes como:
 
-  ```js
-  const userResponse = {user:newUser};
-  delete userResponse.senha;
-  res.status(201).json(userResponse);
-  ```
+- `'AGENTS: Cria agentes corretamente com status code 201...'`
+- `'AGENTS: Lista todos os agente corretamente com status code 200...'`
+- `'AGENTS: Busca agente por ID corretamente com status code 200...'`
+- `'AGENTS: Atualiza dados do agente com PUT e PATCH corretamente...'`
+- `'AGENTS: Deleta dados de agente corretamente com status code 204...'`
+- `'CASES: Cria casos corretamente com status code 201...'`
+- `'CASES: Atualiza dados de um caso com PUT e PATCH corretamente...'`
+- `'CASES: Deleta dados de um caso corretamente com status code 204...'`
 
-  Porém, `delete userResponse.senha;` não remove a senha porque a senha está dentro de `userResponse.user`. O correto é:
+**Possíveis causas:**
 
-  ```js
-  const userResponse = {...newUser};
-  delete userResponse.senha;
-  res.status(201).json(userResponse);
-  ```
+- **Validação e tratamento de erros:** Alguns retornos de erro podem estar com status ou mensagens diferentes do esperado pelos testes. Por exemplo, no seu `agentesController.js` e `casosController.js`, você usa `errorResponse(res, 400, "Mensagem")` ou `errorResponse(res, 404, "Mensagem")`, mas os testes podem esperar mensagens específicas ou formatos JSON exatos.
 
-  Ou:
+- **Formato da resposta ao criar recursos:** Ao criar um agente ou caso, você retorna `create[0]` diretamente, o que está correto, mas confira se o objeto retornado tem exatamente os campos esperados e sem alterações inesperadas.
 
-  ```js
-  const { senha, ...userWithoutPassword } = newUser;
-  res.status(201).json(userWithoutPassword);
-  ```
+- **Atualizações PUT e PATCH:** No método `updateAgente` e `patchAgente`, você está validando corretamente, mas verifique se ao receber payloads incompletos ou incorretos, seu código responde com status e mensagens exatas requeridas. Também garanta que o ID enviado na URL seja validado corretamente (número válido).
 
-  Isso evita retornar a senha hasheada no corpo da resposta, que é uma boa prática.
+- **Deleção:** No `deleteAgente` e `deleteCaso`, você retorna status 204 corretamente, mas os testes falharam para IDs inválidos ou inexistentes. Confirme se você está validando o ID antes de tentar deletar, e se retorna 404 quando o recurso não existe.
+
+### Exemplo de melhoria na validação do ID (em agentesController.js):
+
+```js
+const agenteId = Number(req.params.id);
+if (!Number.isInteger(agenteId) || agenteId <= 0) {
+  return errorResponse(res, 400, "ID inválido");
+}
+```
+
+Isso evita passar strings ou números negativos para o banco.
 
 ---
 
-## 📚 Recursos Recomendados para Você
+### 2.2. Falhas em Validação de Payloads (400 Bad Request)
 
-- Para entender melhor como validar IDs e fazer filtros diretamente no banco com Knex, recomendo este vídeo:  
-  https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s
+Testes como:
 
-- Para aprimorar a estrutura do seu projeto e aplicar o padrão MVC corretamente, veja:  
-  https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s
+- `'AGENTS: Recebe status code 400 ao tentar criar agente com payload em formato incorreto'`
+- `'CASES: Recebe status code 400 ao tentar criar caso com payload em formato incorreto'`
+- `'AGENTS: Recebe status code 400 ao tentar atualizar agente por completo com método PUT e payload em formato incorreto'`
+- `'CASES: Recebe status code 400 ao tentar atualizar um caso por completo com método PUT com payload em formato incorreto'`
+- `'AGENTS: Recebe status code 400 ao tentar atualizar agente parcialmente com método PATCH e payload em formato incorreto'`
 
-- Para solidificar os conceitos de autenticação JWT e hashing com bcrypt, este vídeo é excelente, feito pelos meus criadores:  
+**Possíveis causas:**
+
+- Você está validando presença de campos obrigatórios, o que é ótimo, mas pode faltar validação do tipo de dados ou de campos extras não permitidos. Os testes esperam que qualquer campo extra ou formato incorreto resulte em 400.
+
+- Verifique se está usando `zod` ou outra biblioteca para validar os dados de entrada em agentes e casos, assim como fez no `authController.js` para usuários. Isso ajuda a garantir que o payload está correto antes de tentar inserir ou atualizar no banco.
+
+---
+
+### 2.3. Falhas em Busca por ID e Exclusão com IDs Inválidos ou Inexistentes
+
+Testes como:
+
+- `'AGENTS: Recebe status 404 ao tentar buscar um agente inexistente'`
+- `'AGENTS: Recebe status 404 ao tentar buscar um agente com ID em formato inválido'`
+- `'CASES: Recebe status 404 ao tentar buscar um caso por ID inválido'`
+- `'CASES: Recebe status 404 ao tentar buscar um caso por ID inexistente'`
+- `'AGENTS: Recebe status code 404 ao tentar deletar agente inexistente'`
+- `'AGENTS: Recebe status code 404 ao tentar deletar agente com ID inválido'`
+- `'CASES: Recebe status code 404 ao tentar deletar um caso inexistente'`
+- `'CASES: Recebe status code 404 ao tentar deletar um caso com ID inválido'`
+
+**Possíveis causas:**
+
+- Na busca e deleção, você está validando se o ID é número, mas pode faltar verificar se é inteiro positivo.
+
+- Quando o recurso não é encontrado, você retorna erro 404, o que está correto, mas verifique se o formato da resposta está exatamente como o esperado (exemplo: `{ error: "Mensagem" }` ou apenas mensagem simples).
+
+- Em `usuariosRepository.js`, notei que a função `findById` está importada do `agentesRepository.js`, mas não parece ser usada e pode causar confusão. Certifique-se de que a função está definida corretamente para usuários.
+
+---
+
+### 2.4. Falhas em Filtragem e Busca Avançada (Testes Bônus que Falharam)
+
+Você tentou implementar filtros por status, agente, busca por palavras-chave e ordenação, mas os testes bônus indicam que algumas dessas funcionalidades não estão 100% corretas.
+
+Por exemplo, no `casosController.js`, o filtro por status e agente é feito no controller, filtrando um array retornado do banco:
+
+```js
+const casos = await casosRepository.findAll();
+const agente_id = req.query.agente_id
+const status = req.query.status
+if(status){
+  //...
+  const casosStatus = casos.filter(c=> c.status == status)
+  //...
+}
+```
+
+**Problema:** Essa abordagem busca todos os casos do banco e depois filtra no código, o que não é eficiente e pode não funcionar bem em testes que esperam filtro direto no banco.
+
+**Solução:** Mova a lógica de filtragem para o repositório, usando queries knex com `.where()` para status e agente_id. Isso melhora performance e garante que o banco retorne apenas os dados filtrados.
+
+---
+
+## 3. Pontos Específicos para Você Refletir e Ajustar
+
+### 3.1. Resposta do SignUp — Remover senha da resposta
+
+No seu `authController.js`:
+
+```js
+const userResponse = {user:newUser};
+delete userResponse.senha;
+res.status(201).json(userResponse);
+```
+
+Aqui, você tenta deletar `senha` do objeto `userResponse` que tem a propriedade `user`. O correto seria deletar do próprio `newUser` antes de enviar, assim:
+
+```js
+const userResponse = {...newUser};
+delete userResponse.senha;
+res.status(201).json(userResponse);
+```
+
+Ou simplesmente:
+
+```js
+const { senha, ...userWithoutPassword } = newUser;
+res.status(201).json(userWithoutPassword);
+```
+
+Isso evita enviar a senha hasheada no corpo da resposta.
+
+---
+
+### 3.2. Middleware de Autenticação — Async não necessário
+
+No seu `authMiddleware.js` você declarou a função como `async` mas não usa `await` dentro. Embora não cause erro, é melhor retirar o `async` para evitar confusão.
+
+---
+
+### 3.3. Variável de ambiente JWT_SECRET
+
+Certifique-se de que a variável `JWT_SECRET` está definida no seu `.env`, pois o JWT depende disso para funcionar. Caso contrário, o token não será gerado ou validado corretamente.
+
+---
+
+### 3.4. Validação de IDs
+
+Use sempre validação rigorosa para IDs nas rotas, garantindo que eles sejam inteiros positivos, para evitar erros no banco e respostas erradas.
+
+---
+
+## 4. Recomendações de Recursos para Você Aprimorar
+
+- Para entender melhor como validar dados de entrada para agentes e casos, recomendo usar a biblioteca **zod**, como você fez para usuários. Veja como aplicar no seu contexto:  
+  https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s (Refatoração e Boas Práticas de Código)
+
+- Para melhorar a autenticação JWT e bcrypt, este vídeo, feito pelos meus criadores, explica muito bem os conceitos e a prática:  
   https://www.youtube.com/watch?v=L04Ln97AwoY
 
-- Para configurar seu banco PostgreSQL com Docker e garantir que o Knex conecte corretamente, veja:  
+- Para otimizar suas queries e usar filtros diretamente no banco com Knex, veja este tutorial detalhado:  
+  https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s
+
+- Se tiver dúvidas sobre configurar o ambiente com Docker e PostgreSQL, este vídeo pode ajudar:  
   https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s
 
 ---
 
-## 📝 Resumo dos Principais Pontos para Melhorar
+## 5. Resumo dos Principais Pontos para Melhorar
 
-- Validar IDs (parâmetros) para garantir que sejam números válidos e retornar erro 400 caso contrário.  
-- Fazer filtros e ordenação diretamente nas queries do banco, não em memória, para garantir eficiência e passar os testes.  
-- Ajustar o retorno da criação e atualização para garantir que o JSON enviado seja um objeto, não um array, e sem a senha do usuário.  
-- Criar e incluir o arquivo `INSTRUCTIONS.md` com a documentação de registro, login, envio do token e fluxo de autenticação.  
-- Verificar as variáveis de ambiente `.env` para conter `JWT_SECRET` e `SALT_ROUNDS`.  
-- Remover a senha do usuário retornado após cadastro para não expor dados sensíveis.
+- [ ] Criar e preencher o arquivo **INSTRUCTIONS.md** com documentação clara dos endpoints e uso do JWT.
+
+- [ ] Validar IDs nas rotas para garantir que sejam números inteiros positivos.
+
+- [ ] Usar validação mais rigorosa (pode ser com zod) para payloads de agentes e casos, evitando campos extras ou formatos incorretos.
+
+- [ ] Ajustar respostas para erros, garantindo status e mensagens conforme esperado pelos testes (ex: 400 para payload inválido, 404 para recurso não encontrado).
+
+- [ ] Remover a senha da resposta ao criar usuário no `signUp`.
+
+- [ ] Mover a lógica de filtragem para o repositório, usando queries knex com `.where()` para melhorar performance e passar nos testes bônus.
+
+- [ ] Confirmar que a variável de ambiente `JWT_SECRET` está configurada corretamente.
 
 ---
 
-## 🎯 Mensagem Final
+### fonteBean, você está no caminho certo! 💪
 
-fonteBean, você está no caminho certo! Seu projeto tem uma base sólida e já cobre muitos aspectos importantes da autenticação e segurança. Com essas correções e ajustes, sua API vai ficar muito mais robusta, profissional e pronta para produção! Continue focando na validação dos dados e na interação direta com o banco para garantir a consistência das respostas.
+Seu código mostra que você domina os fundamentos e já implementou as partes críticas de autenticação e segurança. Com os ajustes que conversamos, sua API vai ficar robusta, escalável e preparada para produção! Continue praticando, revisando e aprimorando. O aprendizado acontece passo a passo, e você está fazendo um ótimo trabalho!
 
-Sempre que precisar, volte aos vídeos recomendados para reforçar os conceitos, e não hesite em revisar os testes para entender exatamente o que eles esperam. Você vai longe! 🚀💪
+Se precisar, estarei aqui para ajudar. Vamos juntos! 🚀✨
 
-Se precisar de ajuda para implementar alguma das sugestões, estou aqui para te ajudar! 😉
+Abraço forte e sucesso! 👊
 
-Um abraço e sucesso! 👊✨
+---
+
+Se quiser, posso ajudar a montar o arquivo INSTRUCTIONS.md ou revisar algum trecho específico. É só chamar!
 
 > Caso queira tirar uma dúvida específica, entre em contato com o Chapter no nosso [discord](https://discord.gg/DryuHVnz).
 
