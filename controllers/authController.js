@@ -41,31 +41,31 @@ const userSchema = z.object({
     .regex(/[^a-zA-Z0-9]/, "Senha deve conter caractere especial"),
 }).strict();
 
-async function signUp (req,res){
-    try{
-      const userData = userSchema.parse(req.body);
-      const userExists = await userRepository.findUserByEmail(userData.email);
-      if(userExists){
-        return errorResponse(res,400,"User already exists")
-      }
-      const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS || 10));
-      const hashedPassword = await bcrypt.hash(userData.senha,salt);
-      userData.senha = hashedPassword;
-      const newUser = await userRepository.createUser(userData)
+async function signUp(req, res) {
+  try {
+    const userData = userSchema.parse(req.body);
+    const userExists = await userRepository.findUserByEmail(userData.email);
+    if (userExists) {
+      return errorResponse(res, 400, "User already exists");
+    }
+    const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS || 10));
+    const hashedPassword = await bcrypt.hash(userData.senha, salt);
+    userData.senha = hashedPassword;
+    const newUser = await userRepository.createUser(userData);
 
-      if(!newUser){
-        return errorResponse(res,400,"Bad Request");
-      }
-      res.status(201).json({
-        message: "User created",
-        user: newUser
-      })
-    }catch(error){
-      if (error instanceof z.ZodError) {
-      return errorResponse(res, 400, error.errors.map(e => e.message).join(", "));
+    if (!newUser) {
+      return errorResponse(res, 400, "Bad Request");
     }
-    return errorResponse(res, 500, "Erro interno no servidor");
+    const userResponse = {user:newUser};
+    delete userResponse.senha;
+    res.status(201).json(userResponse);
+   
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors.map(e => e.message).join(", ") });
     }
+    return res.status(500).json({ error: "Erro interno no servidor" });
+  }
 }
 
 
@@ -77,9 +77,25 @@ async function getUsers (req,res){
   res.status(200).json(users);
 }
 
+async function deleteUser(req, res) {
+  const userId = req.params.id;
+  const success = await userRepository.deleteUser(userId);
+  if (!success) {
+    return errorResponse(res, 404, "Usuário não encontrado");
+  }
+  res.status(204).send();
+}
+async function logout(req, res) {
+  res.status(204).send();
+}
+
+
+
 module.exports = {
   login,
   signUp,
+  deleteUser,
   getMe,
+  logout,
   getUsers
 }
