@@ -37,10 +37,7 @@ exports.up = function (knex) {
 
 exports.down = function (knex) {
   return knex.schema
-    .dropTable("usuarios")
-    .then(()=>
-      knex.schema.dropTable("agentes")).
-    then(()=>
-      knex.schema.dropTable("casos"))
-  
+    .dropTable("casos")
+    .then(() => knex.schema.dropTable("agentes"))
+    .then(() => knex.schema.dropTable("usuarios"));
 };
