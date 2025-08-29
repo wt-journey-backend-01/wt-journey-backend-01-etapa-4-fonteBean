@@ -70,7 +70,7 @@ async function searchEmCaso(req,res){
   }
   res.status(200).json(casosFiltrados);
 }
-const { z } = require("zod");
+
 
 const casoSchema = z.object({
   titulo: z
@@ -110,7 +110,6 @@ async function createCaso(req,res){
       error: parseResult.error.errors.map(err => err.message),
     });
   }
-
   const agente = await agentesRepository.findById(novoCaso.agente_id);
   if (!agente) {
     return errorResponse(res,404,"Agente não encontrado para o agente_id fornecido");
@@ -140,37 +139,30 @@ async function updateCaso(req, res) {
   if (isNaN(casoId)) {
     return errorResponse(res, 400, "ID inválido");
   } 
-  const { titulo, descricao, status, agente_id } = req.body;
   if ('id' in req.body) {
   return errorResponse(res,400,"Não é permitido alterar o ID do caso.");
 }
-
-  if (!titulo || !descricao || !status || !agente_id) {
-    return errorResponse(res,400,"Todos os campos são obrigatórios para atualização completa.");
+   const uptatedCaso = casoSchema.safeParse(req.body);
+   if (!uptatedCaso.success) {
+    return res.status(400).json({
+      error: parseResult.error.errors.map(err => err.message),
+    });
   }
+
+ 
 
   const caso = await casosRepository.findById(casoId);
   if (!caso) {
     return errorResponse(res,404,"caso não encontrado.");
   }
  
-    if( status != "aberto" && status != "solucionado")
-    {
-     return  errorResponse(res,400,"Status nao permitido ")
-    }
-    caso.status = status
   
-  const agente = await agentesRepository.findById(agente_id);
+  const agente = await agentesRepository.findById(uptatedCaso.agente_id);
   if (!agente) {
     return errorResponse(res,404,"Agente não encontrado para o agente_id fornecido");
   }
 
-  const update = await casosRepository.updateCaso(casoId,{
-      titulo,
-   descricao,
-    status,
-   agente_id
-  })
+  const update = await casosRepository.updateCaso(casoId,uptatedCaso)
   if(!update){
     return errorResponse(res,404,"Erro ao atualizar caso");
   }
