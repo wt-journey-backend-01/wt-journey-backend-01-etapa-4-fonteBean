@@ -2,7 +2,6 @@ const agentesController = require('../controllers/agentesController.js');
 const express = require('express');
 const router = express.Router();
 
-// precisa sempre de uma string como primeiro argumento
 router.get('/', agentesController.getAgentes);
 router.get('/:id', agentesController.getAgenteById);
 router.post('/', agentesController.createAgente);

@@ -58,7 +58,7 @@ async function deleteUser(id) {
 
 module.exports = {
   findUserByEmail,
-  findById,
+  findUserById,
   deleteUser,
   createUser,
   findAll

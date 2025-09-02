@@ -17,8 +17,8 @@
     "start": "node server.js",
     "db:migrate": "npx knex migrate:latest",
     "db:seed": "npx knex seed:run",
-    "db:setup" : "npm run db:migrate && npm run db:seed",
-    "dev": "npm run db:setup && node --watch server.js"
+    "setup" : "docker-compose up -d && npm run db:migrate && npm run db:seed",
+    "dev": "node --watch server.js"
   },
   "repository": {
     "type": "git",
