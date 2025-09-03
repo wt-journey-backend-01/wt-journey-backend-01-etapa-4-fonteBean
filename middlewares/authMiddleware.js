@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const errorResponse = require('../utils/errorHandler')
 
 async function authMiddleware(req,res,next){
-  const authHeader = req.headers["authorization"];
+  const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(" ")[1];
   if(!token){
    return   errorResponse(res,401,"Token Necessario");
