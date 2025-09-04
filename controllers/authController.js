@@ -46,7 +46,7 @@ async function signUp(req, res) {
     const userData = userSchema.parse(req.body);
     const userExists = await userRepository.findUserByEmail(userData.data.email);
     if (userExists) {
-      return res.status(400).json({message:"User already exists"});
+      return res.status(401).json({message:"User already exists"});
     }
     const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS || 10));
     const hashedPassword = await bcrypt.hash(userData.data.senha, salt);
