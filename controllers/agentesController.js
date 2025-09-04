@@ -12,12 +12,12 @@ async function getAgentes(req, res) {
   if(sort) filter.sort = sort;
   let agentes =  await agentesRepository.findAll(filter);
   if (!agentes || agentes.length === 0) {
-      return errorResponse(res, 404, "Nenhum caso encontrado com os filtros aplicados");
+      return res.status(404).json({message:"Nenhum caso encontrado com os filtros aplicados"});
     }
 
   res.status(200).json(agentes);
  }catch(err){
-    return errorResponse(res,500,"Erro interno");
+    return errorResponse(res ,500,"Erro interno");
  }
 }
 
@@ -80,7 +80,7 @@ async function updateAgente(req, res) {
       return errorResponse(res, 400, "Data de incorporação não pode ser no futuro.");
     }
     if ('id' in req.body) {
-    return errorResponse(res,400,"Não é permitido alterar o ID do agente.");
+    return res.status(401).json({message:"Não é permitido alterar o ID do agente."});
     }
     const agenteUpdated = {
       id: agenteId,
