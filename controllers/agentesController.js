@@ -1,12 +1,26 @@
 const agentesRepository = require('../repositories/agentesRepository')
 const {z} = require('zod');
+
 const agenteSchema = z.object({
-  nome: z.string().min(1, "Nome é obrigatório"),
-  cargo: z.string().min(1, "Cargo é obrigatório"),
-  dataDeIncorporacao: z.string().refine(dateStr => !isNaN(new Date(dateStr).getTime()), {
-    message: "Data de incorporação inválida"
-  }),
+  nome: z.string()
+    .trim() 
+    .nonempty("Nome é obrigatório"),
+
+  cargo: z.string().trim().nonempty("Cargo é obrigatório"),
+
+  dataDeIncorporacao: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de data inválido. Use YYYY-MM-DD")
+    .refine((dateStr) => {
+      const dataInserida = new Date(dateStr);
+      const dataAtual = new Date();
+      dataAtual.setHours(0, 0, 0, 0); 
+      return dataInserida <= dataAtual;
+    }, {
+      message: "A data de incorporação não pode ser no futuro"
+    }),
+    
 }).strict();
+
 
 
 async function getAgentes(req, res) {
@@ -44,14 +58,14 @@ async function getAgenteById(req, res) {
 async function createAgente(req, res) {
   try {
     const agenteData = agenteSchema.parse(req.body);
-    const data = new Date(agenteData.data.dataDeIncorporacao);
+    const data = new Date(agenteData.dataDeIncorporacao);
     const agora = new Date();
     if (data > agora) {
       return res.status(400).json({message:"Data de incorporação não pode ser no futuro."});
     }
     const novoAgente = {
-      nome: agenteData.data.nome,
-      cargo: agenteData.data.cargo,
+      nome: agenteData.nome,
+      cargo: agenteData.cargo,
       dataDeIncorporacao: data.toISOString().split('T')[0],
     };
     const create = await agentesRepository.criarAgente(novoAgente);
