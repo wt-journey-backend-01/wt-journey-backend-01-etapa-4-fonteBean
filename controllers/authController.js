@@ -46,7 +46,7 @@ async function signUp(req, res) {
     const userData = userSchema.parse(req.body);
     const userExists = await userRepository.findUserByEmail(userData.email);
     if (userExists) {
-      return res.status(401).json({message:"User already exists"});
+      return res.status(400).json({message:"User already exists"});
     }
     const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS || 10));
     const hashedPassword = await bcrypt.hash(userData.senha, salt);
@@ -54,7 +54,7 @@ async function signUp(req, res) {
     const newUser = await userRepository.createUser(userData);
 
     if (!newUser) {
-      return res.status(401).json({message: "Bad Request"});
+      return res.status(400).json({message: "Bad Request"});
     }
     const userResponse = {...newUser};
     delete userResponse.senha;
@@ -62,7 +62,7 @@ async function signUp(req, res) {
    
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(401).json({message:"Erro"});
+      return res.status(400).json({message:"Erro"});
     }
     return res.status(500).json({ error: "Erro interno no servidor" });
   }

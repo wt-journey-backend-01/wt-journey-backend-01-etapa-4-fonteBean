@@ -108,7 +108,8 @@ async function createCaso(req,res){
  if (!novoCaso.success) {
     return res.status(400).json({message: "Erro ao criar caso"});
   }
-  const agente = await agentesRepository.findById(novoCaso.agente_id);
+  const agente_id = novoCaso.data.agente_id;
+  const agente = await agentesRepository.findById(agente_id);
   if (!agente) {
     return res.status(404).json({message:"Agente não encontrado para o agente_id fornecido"});
   }
