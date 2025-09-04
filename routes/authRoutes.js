@@ -1,13 +1,16 @@
-const authController = require('../controllers/authController.js');
-const authMiddleware = require('../middlewares/authMiddleware.js')
-const express =require('express');
+const express = require('express');
 const router = express.Router();
+const authController = require('../controllers/authController');
+const authMiddleware = require('../middlewares/authMiddleware');
 
+router.get('/me', authMiddleware, authController.me);
+router.get('/', authMiddleware, authController.findAll);
+router.get('/:id', authMiddleware, authController.findById);
+router.post('/', authMiddleware, authController.findByEmail);
 
 router.post('/login', authController.login);
-router.get('/usuarios',authMiddleware, authController.getUsers);
-router.get('/usuarios/me', authMiddleware, authController.getMe);
-router.post('/register', authController.signUp);
-router.post('/logout',authMiddleware, authController.logout)
-router.delete('/usuarios/:id', authMiddleware, authController.deleteUser);
+router.post('/register', authController.create);
+router.post('/logout', authController.logout);
+router.get('/logout', authController.logout);
+
 module.exports = router;

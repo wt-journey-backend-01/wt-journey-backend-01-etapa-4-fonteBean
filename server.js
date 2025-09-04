@@ -1,25 +1,24 @@
-const express = require('express');
-
+const express = require("express");
 const app = express();
 const PORT = 3000;
 
-
-app.use(express.urlencoded({extended: true}));
 app.use(express.json());
 
+const agentesRoutes = require("./routes/agentesRoutes");
+const casosRoutes = require("./routes/casosRoutes");
+const authRoutes = require("./routes/authRoutes");
 
-const authRoutes = require('./routes/authRoutes.js');
-const agentesRoutes = require('./routes/agentesRoutes.js');
-const casosRoutes = require('./routes/casosRoutes.js');
+app.use("/auth", authRoutes);
+app.use("/casos", casosRoutes);
+app.use("/agentes", agentesRoutes);
 
-
-
-
-app.use('/agentes', agentesRoutes);
-app.use('/casos', casosRoutes);
-app.use('/auth',authRoutes); 
+app.use((req, res) => {
+  res.status(404).json({ status: 404, message: "Rota não encontrada" });
+});
 
 
 app.listen(PORT, () => {
-    console.log(`Servidor do Departamento de Polícia rodando em localhost:${PORT}`);
+  console.log(
+    `Servidor do Departamento de Polícia rodando em http://localhost:${PORT}`
+  );
 });

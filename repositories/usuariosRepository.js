@@ -1,65 +1,40 @@
 const db = require('../db/db');
 
+async function create({nome, email, senha}) {
+    const [usuarios] = await db ('usuarios').insert({nome, email, senha}).
+    returning('*');
+    return usuarios;
+}
 
-
+async function findByEmail(email) {
+    const usuarios = await db('usuarios').where({email}).first();
+    return usuarios;
+}
 
 async function findAll() {
-  try{
-    const users = await db('usuarios').select("*");
-    if(!users){
-      return false;
-    }
-    return users;
-  }catch(err){
-    return false;
-  }
+  const usuarios = await db('usuarios').select('*');
+  return usuarios;
 }
 
-async function findUserByEmail(email) {
-  try{
-    const user = await db('usuarios').where({email:email}).first();
-    if(!user){
-      return false;
-    }
-    return user;
-  }catch(err){
-    return false
-  }
-}
-async function findUserById(id) {
-  try {
-    const user = await db('usuarios').where({ id }).first();
-    return user || false;
-  } catch (err) {
-    return false;
-  }
+async function findById(id) {
+  const usuarios = await db('usuarios').where({ id }).first();
+  return usuarios;
 }
 
-
-async function createUser(user) {
-  try{
-    const [userCreated] = await db('usuarios').insert(user).returning("*");
-    return userCreated;
-  }catch(err){
-    console.error("Erro ao criar usuário no banco de dados:", err);
-    return false
-  }
+async function update(id,dados ) {
+  const usuarios = await db('usuarios').where({ id }).update(dados).returning('*');
+  return usuarios[0];
 }
 
-async function deleteUser(id) {
-  try {
-    const deleted = await db('usuarios').where({ id }).del();
-    return deleted > 0;
-  } catch (err) {
-    console.error(err);
-    return false;
-  }
+async function deleteById(id) {
+  return await db('usuarios').where({ id }).del();
 }
 
 module.exports = {
-  findUserByEmail,
-  findUserById,
-  deleteUser,
-  createUser,
-  findAll
+    create,
+    findByEmail,
+    findById,
+    findAll,
+    update,
+    deleteById,
 }

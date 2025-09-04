@@ -1,101 +1,134 @@
-const userRepository = require('../repositories/usuariosRepository.js');
-const bcrypt = require('bcryptjs');
+const usuariosRepository = require('../repositories/usuariosRepository');
 const jwt = require('jsonwebtoken');
-const {z} = require('zod');
-const userSchema = z.object({
-  nome: z.string().min(1, "Nome é obrigatório"),
-  email: z.string().email("Email inválido"),
-  senha: z.string()
-    .min(8, "Senha deve ter no mínimo 8 caracteres")
-    .regex(/[a-z]/, "Senha deve conter letra minúscula")
-    .regex(/[A-Z]/, "Senha deve conter letra maiúscula")
-    .regex(/[0-9]/, "Senha deve conter número")
-    .regex(/[^a-zA-Z0-9]/, "Senha deve conter caractere especial"),
-}).strict();
+const bcrypt = require('bcrypt');
 
+async function login(req, res, next) {
+    try {
+        const { email, senha } = req.body;
 
-async function login (req,res){
-    const {email,senha} = req.body;
-    const user = await userRepository.findUserByEmail(email);
-    if(!user){
-      return res.status(404).json({message:"Not found"});
-    }
-    const isPasswordValid = await bcrypt.compare(senha, user.senha);
-    if(!isPasswordValid){
-      return res.status(401).json({message:"Password incorrect"});
-    }
-    const token = jwt.sign({id: user.id, nome:user.nome, email:user.email}, process.env.JWT_SECRET || "secret" 
-      ,{
-      expiresIn: "1d"
-    });
-    res.status(200).json({"access_token": token})
-}
-async function getMe(req, res) {
-  const userId = req.user.id;
-  const user = await userRepository.findUserById(userId);
-  if (!user) {
-    return res.status(404).json({message:"Usuário não encontrado"});
-  }
-  res.status(200).json(user);
+        if (!email || !senha) {
+            return res.status(400).json({
+                mensagem: "Email e senha são obrigatórios"
+            });
+        }
+
+        const usuario = await usuariosRepository.findByEmail(email);
+
+        if (!usuario) {
+            return res.status(404).json({ mensagem: "Usuário não encontrado" });
+        }
+
+        const senhaCorreta = await bcrypt.compare(senha, usuario.senha);
+        if (!senhaCorreta) {
+            return res.status(401).json({ mensagem: "Senha inválida" });
+        }
+
+        const token = jwt.sign(
+            { id: usuario.id, email: usuario.email },
+            process.env.JWT_SECRET || "chave_secreta",
+            { expiresIn: "1h" }
+        );
+      return res.status(200).json({ access_token: token });
+      } catch (error) {
+          next(error);
+      }
 }
 
+function validarSenha(senha) {
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  return regex.test(senha);
+}
 
-
-async function signUp(req, res) {
+async function create(req, res, next) {
   try {
-    const userData = userSchema.parse(req.body);
-    const userExists = await userRepository.findUserByEmail(userData.data.email);
-    if (userExists) {
-      return res.status(401).json({message:"User already exists"});
-    }
-    const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS || 10));
-    const hashedPassword = await bcrypt.hash(userData.data.senha, salt);
-    userData.data.senha = hashedPassword;
-    const newUser = await userRepository.createUser(userData);
+    const { nome, email, senha, ...extras } = req.body;
+    const errors = [];
 
-    if (!newUser) {
-      return res.status(400).json({message: "Bad Request"});
+    if (Object.keys(extras).length > 0) {
+      errors.push({ field: "extras", message: "Campos extras não permitidos" });
     }
-    const userResponse = {...newUser};
-    delete userResponse.data.senha;
-    res.status(201).json(userResponse);
-   
+    if (!nome || typeof nome !== 'string' || nome.trim() === '') {
+      errors.push({ field: "nome", message: "Nome é obrigatório" });
+    }
+    if (!email || typeof email !== 'string' || email.trim() === '') {
+      errors.push({ field: "email", message: "Email é obrigatório" });
+    }
+    if (!senha) {
+      errors.push({ field: "senha", message: "Senha é obrigatória" });
+    } else if (!validarSenha(senha)) {
+      errors.push({ field: "senha", message: "Senha deve ter no mínimo 8 caracteres, incluir letra maiúscula, minúscula, número e caractere especial" });
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({ status: 400, message: "Parâmetros inválidos", errors });
+    }
+
+    const usuarioExistente = await usuariosRepository.findByEmail(email);
+    if (usuarioExistente) {
+      return res.status(400).json({ status: 400, message: "Email já está em uso" });
+    }
+
+    const senhaHasheada = await bcrypt.hash(senha, 10);
+    const novoUsuario = await usuariosRepository.create({ nome, email, senha: senhaHasheada });
+
+    const { senha: _, ...usuarioSemSenha } = novoUsuario;
+
+    return res.status(201).json(usuarioSemSenha);
+
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({message:"Erro"});
-    }
-    return res.status(500).json({ error: "Erro interno no servidor" });
+    next(error);
   }
 }
+async function logout(req, res){
 
-
-async function getUsers (req,res){
-  const users = await userRepository.findAll();
-  if(!users){
-    return res.status(400).json({message:"Not Found"});
-  }
-  res.status(200).json(users);
-}
-
-async function deleteUser(req, res) {
-  const userId = req.params.id;
-  const success = await userRepository.deleteUser(userId);
-  if (!success) {
-    return res.status(404).json({message:"Usuário não encontrado"});
-  }
-  res.status(204).send();
-}
-async function logout(req, res) {
   res.status(204).send();
 }
 
-
-
-module.exports = {
-  login,
-  signUp,
-  deleteUser,
-  getMe,
-  logout,
-  getUsers
+async function heshSenha(senha) {
+  const tentativas = 10;
+  if (!senha) {
+  errors.push({ field: "senha", message: "Senha é obrigatória" });
+} else if (!validarSenha(senha)) {
+  errors.push({ field: "senha", message: "Senha deve ter no mínimo 8 caracteres, incluir letra maiúscula, minúscula, número e caractere especial" });
 }
+  return await bcrypt.hash(senha, tentativas);
+}
+
+async function veryToken(token) {
+  return jwt.verify(token, process.env.JWT_SECRET || "chave_secreta");
+}
+
+async function findAll() {
+  return await usuariosRepository.findAll();
+}
+
+async function findById(id) {
+  if(!id){
+
+  }
+  return await usuariosRepository.findById(id);
+}
+
+async function findByEmail(email) {
+  return await usuariosRepository.findByEmail(email);
+}
+
+async function me(req, res) {
+  const usuario = await usuariosRepository.findById(req.user.id);
+  if (!usuario) {
+    return res.status(404).json({ message: "Usuário não encontrado" });
+  }
+  res.json({ id: usuario.id, nome: usuario.nome, email: usuario.email });
+}
+
+module.exports = { 
+    login,
+    create,
+    logout,
+    heshSenha,
+    veryToken,
+    findAll,
+    findById,
+    findByEmail,
+    me,
+ };

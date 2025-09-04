@@ -1,93 +1,50 @@
-const { pathToRegexp } = require("path-to-regexp");
-const db = require("../db/db")
+const db = require('../db/db');
 
-async function findAll(){
-  try{
-    const query = await db("casos").select("*");
-    if(!query){
-      return false
-    }
-    return query
-  }catch(err){
-    console.log(err);
-    return false;
-  }
+async function findAll() {
+  return await db('casos').select('*');
 }
+
 async function findById(id) {
-  try {
-    const query = await db("casos").where({id:id}).first();
-    if(!query){
-      return false;
-    }
-    return query
-  }catch (err) {
-    console.log(err);
-    return false
+  return await db('casos').where({ id }).first();
+}
+
+async function create(data) { 
+  const rows = await db('casos').insert(data).returning('*');
+  return rows[0]; // Retorna o objeto criado
+}
+
+async function findFiltered(filters) {
+  const query = db('casos').select('*');
+
+  if (filters.status) {
+    query.where('status', filters.status);
   }
-}
-
-async function criarCaso(caso){
-  try{
-    const query = await db("casos").insert(caso);
-    if(!query){
-      return false
-    }
-    return query
-  }catch(err){
-    console.log(err);
-    return false
+  if (filters.agente_id) {
+    query.where('agente_id', filters.agente_id);
   }
-}
-
-async function deleteCaso(id){
-  try{
-    const query = await db("casos").where({id:id}).del();
-    if(!query){
-      return false;
-    }
-    return true
-  }catch(err){
-    console.log(err);
-    return false;
+  if (filters.titulo) {
+    query.where('titulo', 'ilike', `%${filters.titulo}%`); // ilike para case-insensitive
   }
-  
-}
-
-async function buscaPalavraEmCaso(palavraChave) {
-  const palavraChaveFormatada = `%${palavraChave.toLowerCase()}%`;
-
-  const casosFiltrados = await db('casos')
-    .whereRaw('LOWER(titulo) LIKE ?', [palavraChaveFormatada])
-    .orWhereRaw('LOWER(descricao) LIKE ?', [palavraChaveFormatada])
-    .select('*');
-
-  return casosFiltrados;
-}
-
-async function updateCaso(id, dadosAtualizados) {
-  try {
-    const updated = await db('casos').where({ id }).update(dadosAtualizados);
-    if (!updated || updated.length === 0) {
-      return false;
-    }
-    return updated;
-  } catch (err) {
-    console.log(err);
-    return false;
+  if (filters.descricao) {
+    query.where('descricao', 'ilike', `%${filters.descricao}%`);
   }
+
+  return await query;
 }
 
-async function patchCaso(id, dadosParaAtualizar) {
-  return updateCaso(id, dadosParaAtualizar); 
+async function update(id, data) {
+  return await db('casos').where({ id }).update(data).returning('*').then(rows => rows[0]);
 }
 
+async function deleteById(id) {
+  return await db('casos').where({ id }).del();
+}
 
-module.exports  = {
+module.exports = { 
   findAll,
   findById,
-  criarCaso,
-  deleteCaso,
-  buscaPalavraEmCaso,
-  updateCaso,
-  patchCaso
-}
+  update,
+  findFiltered,
+  create, 
+  deleteById,
+};

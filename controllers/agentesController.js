@@ -1,179 +1,165 @@
-const agentesRepository = require('../repositories/agentesRepository')
-const {z} = require('zod');
+const agentesRepository = require('../repositories/agentesRepository');
 
-const agenteSchema = z.object({
-  nome: z.string()
-    .trim() 
-    .nonempty("Nome é obrigatório"),
-
-  cargo: z.string().trim().nonempty("Cargo é obrigatório"),
-
-  dataDeIncorporacao: z.string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de data inválido. Use YYYY-MM-DD")
-    .refine((dateStr) => {
-      const dataInserida = new Date(dateStr);
-      const dataAtual = new Date();
-      dataAtual.setHours(0, 0, 0, 0); 
-      return dataInserida <= dataAtual;
-    }, {
-      message: "A data de incorporação não pode ser no futuro"
-    }),
-    
-}).strict();
-
-
-
-async function getAgentes(req, res) {
- try{
-  const {cargo,sort} = req.query;
-  const filter = {};
-  if(cargo) filter.cargo = cargo;
-  if(sort) filter.sort = sort;
-  let agentes =  await agentesRepository.findAll(filter);
-  if (!agentes || agentes.length === 0) {
-      return res.status(404).json({message:"Nenhum caso encontrado com os filtros aplicados"});
-    }
-
-  res.status(200).json(agentes);
- }catch(err){
-    return res.status(500).json({message:"Erro interno"});
- }
+function isValidDate(dateString) {
+  const regex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!regex.test(dateString)) return false;
+  const date = new Date(dateString);
+  const today = new Date();
+  return !isNaN(date.getTime()) && date <= today;
 }
 
-async function getAgenteById(req, res) {
-  const agenteId = Number(req.params.id);
-  if (isNaN(agenteId) || agenteId <= 0) {
-    return res.status(400).json({message:"ID inválido"});
-  }
-  const agente = await agentesRepository.findById(agenteId);
-  if (!agente) {
-    return res.status(404).json({message:"Agente não encontrado"});
-  }
-  res.status(200).json(agente);
-}
-
-
-
-
-async function createAgente(req, res) {
-  try {
-    const agenteData = agenteSchema.parse(req.body);
-    const data = new Date(agenteData.dataDeIncorporacao);
-    const agora = new Date();
-    if (data > agora) {
-      return res.status(400).json({message:"Data de incorporação não pode ser no futuro."});
-    }
-    const novoAgente = {
-      nome: agenteData.nome,
-      cargo: agenteData.cargo,
-      dataDeIncorporacao: data.toISOString().split('T')[0],
-    };
-    const create = await agentesRepository.criarAgente(novoAgente);
-    if (!create) {
-      return res.status(400).json({message:"Erro ao criar agente"});
-    }
-    res.status(201).json(create[0]);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(401).json({message:"Erro"});
-    }
-    return res.status(500).json({message:"Erro interno"});
-  }
-}
-
-async function updateAgente(req, res) {
- const agenteId = Number(req.params.id);
-  if (isNaN(agenteId)) {
-    return res.status(400).json("ID inválido");
-  }
-   const agenteData = agenteSchema.parse(req.body);
-    const data = new Date(agenteData.data.dataDeIncorporacao);
-    const agora = new Date();
-    if (data > agora) {
-      return res.status(401).json({message:"Data de incorporação não pode ser no futuro."});
-    }
-    if ('id' in req.body) {
-    return res.status(401).json({message:"Não é permitido alterar o ID do agente."});
-    }
-    const agenteUpdated = {
-      id: agenteId,
-      nome: agenteData.data.nome,
-      cargo: agenteData.data.cargo,
-      dataDeIncorporacao: data.toISOString().split('T')[0],
-    };
-
-
-
-  const agenteAtualizado = await agentesRepository.updateAgente(agenteUpdated);
-
-  if (!agenteAtualizado) {
-    return res.status(404).json({message:"Agente não encontrado."});
-  }
-
-  res.status(200).json(agenteAtualizado[0]);
-}
-
-
-async function patchAgente(req, res) {
-  const agenteId = Number(req.params.id);
-  if (isNaN(agenteId)) {
-    return res.status(400).json({message: "ID inválido"});
-  }
-  const { nome, cargo, dataDeIncorporacao } = req.body;
-
-  if ('id' in req.body) {
-    return res.status(400).json({message:"Não é permitido alterar o ID do agente."});
-  }
-  if (nome === undefined && cargo === undefined && dataDeIncorporacao === undefined) {
-    return res.status(400).json({message: "Nenhum campo válido para atualização foi enviado."});
-  }
-
-  const agente =  await agentesRepository.findById(agenteId);
-  if (!agente) {
-    return res.status(404).json("Agente não encontrado.");
-  }
-  const dadosParaAtualizar = {};
-  if (nome !== undefined) dadosParaAtualizar.nome = nome;
-  if (cargo !== undefined) dadosParaAtualizar.cargo = cargo;
- 
-  if (dataDeIncorporacao !== undefined) {
-    const data = new Date(dataDeIncorporacao);
-    const agora = new Date();
-    if (isNaN(data.getTime())) {
-      return res.status(400).json({message:"Data de incorporação inválida."});
-    }
-    if (data > agora) {
-      return res.status(400).json({message: "Data de incorporação não pode ser no futuro."});
-    }
-     dadosParaAtualizar.dataDeIncorporacao = data.toISOString().split('T')[0];
-  }
-
-  const agenteAtualizado = await agentesRepository.updateAgente(agenteId, dadosParaAtualizar);
-  if (!agenteAtualizado) {
-    return res.status(404).json({message: "Agente não encontrado."});
-  }
-  res.status(200).json(agenteAtualizado[0]);
-}
-
-
-async function deleteAgente(req,res){
-  const agenteId = Number(req.params.id);
-  if(isNaN(agenteId)) {
-   return res.status(400).json({message:"ID inválido"});
-  }
-    
-  const sucesso = await agentesRepository.deleteAgente(agenteId);
-  if(!sucesso){
-    return res.status(404).json({message:`Error ao deletar ${agenteId}`})
-  }
-  res.status(204).send();
+function formatDate(date) {
+  return new Date(date).toISOString().split('T')[0];
 }
 
 module.exports = {
-  getAgenteById,
-  getAgentes,
-  createAgente,
-  deleteAgente,
-  updateAgente,
-  patchAgente,
+  async findAll(req, res) {
+    try {
+      let agentes = await agentesRepository.findAll();
+      const { cargo, sort } = req.query;
+
+      if (cargo) {
+        agentes = agentes.filter(agente =>
+          agente.cargo.toLowerCase() === cargo.toLowerCase()
+        );
+      }
+
+      if (sort === 'dataDeIncorporacao') {
+        agentes = agentes.sort((a, b) =>
+          new Date(a.dataDeIncorporacao) - new Date(b.dataDeIncorporacao)
+        );
+      } else if (sort === '-dataDeIncorporacao') {
+        agentes = agentes.sort((a, b) =>
+          new Date(b.dataDeIncorporacao) - new Date(a.dataDeIncorporacao)
+        );
+      }
+
+      agentes = agentes.map(a => ({
+        ...a,
+        dataDeIncorporacao: formatDate(a.dataDeIncorporacao)
+      }));
+
+      res.json(agentes);
+    } catch (error) {
+      res.status(500).json({ message: "Erro interno no servidor" });
+    }
+  },
+
+  async findById(req, res) {
+    const agente = await agentesRepository.findById(id);
+    if (!agente) {
+      return res.status(404).json({ message: "Agente não encontrado" });
+    }
+    const id = Number(req.params.id);
+    if (isNaN(id) || id <= 0) {
+    return res.status(404).json({ message: "ID inválido" });
+    }
+    agente.dataDeIncorporacao = formatDate(agente.dataDeIncorporacao);
+    res.json(agente);
+  },
+
+  async create(req, res) {
+    const { nome, dataDeIncorporacao, cargo } = req.body;
+    const errors = [];
+
+    if (!nome || typeof nome !== 'string' || nome.trim() === '') {
+      errors.push({ field: "nome", message: "Nome é obrigatório e deve ser uma string não vazia" });
+    }
+    if (!cargo || typeof cargo !== 'string' || cargo.trim() === '') {
+      errors.push({ field: "cargo", message: "Cargo é obrigatório e deve ser uma string não vazia" });
+    }
+    if (!dataDeIncorporacao || !isValidDate(dataDeIncorporacao)) {
+      errors.push({ field: "dataDeIncorporacao", message: "Data inválida ou no futuro" });
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({ status: 400, message: "Parâmetros inválidos", errors });
+    }
+
+    const agenteCriado = await agentesRepository.create({ nome, dataDeIncorporacao, cargo });
+    agenteCriado.dataDeIncorporacao = formatDate(agenteCriado.dataDeIncorporacao);
+    return res.status(201).json(agenteCriado);
+  },
+
+  async update(req, res) {
+    const dadosAtualizados = req.body;
+
+    const id = Number(req.params.id);
+    if (isNaN(id) || id <= 0) {
+      return res.status(404).json({ message: "ID inválido" });
+    }
+
+    const errors = [];
+    if (!dadosAtualizados.nome || typeof dadosAtualizados.nome !== 'string' || dadosAtualizados.nome.trim() === '') {
+      errors.push({ field: "nome", message: "Nome é obrigatório e deve ser uma string não vazia" });
+    }
+    if (!dadosAtualizados.cargo || typeof dadosAtualizados.cargo !== 'string' || dadosAtualizados.cargo.trim() === '') {
+      errors.push({ field: "cargo", message: "Cargo é obrigatório e deve ser uma string não vazia" });
+    }
+    if (!dadosAtualizados.dataDeIncorporacao || !isValidDate(dadosAtualizados.dataDeIncorporacao)) {
+      errors.push({ field: "dataDeIncorporacao", message: "Data inválida ou no futuro" });
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({ status: 400, message: "Parâmetros inválidos", errors });
+    }
+
+    const agenteAtualizado = await agentesRepository.update(id, dadosAtualizados); 
+    if (!agenteAtualizado) {
+      return res.status(404).json({ error: 'Agente não encontrado' });
+    }
+    agenteAtualizado.dataDeIncorporacao = formatDate(agenteAtualizado.dataDeIncorporacao);
+    res.status(200).json(agenteAtualizado);
+  },
+
+  async partialUpdate(req, res) {
+    const dadosAtualizados = { ...req.body };
+
+    if (Object.keys(dadosAtualizados).length === 0) {
+      return res.status(400).json({
+        status: 400,
+        message: "Nenhum dado para atualizar foi fornecido."
+      });
+    }
+
+    const id = Number(req.params.id);
+    if (isNaN(id) || id <= 0) {
+      return res.status(404).json({ message: "ID inválido" });
+    }
+    const errors = [];
+    if ('nome' in dadosAtualizados && 
+        (typeof dadosAtualizados.nome !== 'string' || dadosAtualizados.nome.trim() === '')) {
+      errors.push({ field: "nome", message: "Nome deve ser uma string não vazia" });
+    }
+    if ('cargo' in dadosAtualizados && 
+        (typeof dadosAtualizados.cargo !== 'string' || dadosAtualizados.cargo.trim() === '')) {
+      errors.push({ field: "cargo", message: "Cargo deve ser uma string não vazia" });
+    }
+    if ('dataDeIncorporacao' in dadosAtualizados && !isValidDate(dadosAtualizados.dataDeIncorporacao)) {
+      errors.push({ field: "dataDeIncorporacao", message: "Data inválida ou no futuro" });
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({ status: 400, message: "Parâmetros inválidos", errors });
+    }
+
+    const agenteAtualizado = await agentesRepository.update(id, dadosAtualizados); 
+    if (!agenteAtualizado) {
+      return res.status(404).json({ error: 'Agente não encontrado' });
+    }
+    agenteAtualizado.dataDeIncorporacao = formatDate(agenteAtualizado.dataDeIncorporacao);
+    res.status(200).json(agenteAtualizado);
+  },
+
+  async deleteById(req, res) {
+    const id = Number(req.params.id);
+    if (isNaN(id) || id <= 0) {
+      return res.status(404).json({ message: "ID inválido" });
+    }
+    const deletado = await agentesRepository.deleteById(id);
+    if (!deletado) {
+      return res.status(404).json({ message: "Agente não encontrado" });
+    }
+    return res.status(204).send();
+  }
 };
