@@ -2,14 +2,40 @@
 
 # 🧪 Relatório de Avaliação – Journey Levty Etapa 1 - fonteBean
 
-**Data:** 04/09/2025 17:47
+**Data:** 04/09/2025 17:53
 
-**Nota Final:** `59.89/100`
+**Nota Final:** `37.14/100`
 **Status:** ❌ Reprovado
 
 ---
 ## ✅ Requisitos Obrigatórios
-- Foram encontrados `28` problemas nos requisitos obrigatórios. Veja abaixo os testes que falharam:
+- Foram encontrados `41` problemas nos requisitos obrigatórios. Veja abaixo os testes que falharam:
+  - ⚠️ **Falhou no teste**: `USERS: Recebe erro 400 ao tentar criar um usuário com nome vazio`
+    - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
+  - ⚠️ **Falhou no teste**: `USERS: Recebe erro 400 ao tentar criar um usuário com nome nulo`
+    - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
+  - ⚠️ **Falhou no teste**: `USERS: Recebe erro 400 ao tentar criar um usuário com email vazio`
+    - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
+  - ⚠️ **Falhou no teste**: `USERS: Recebe erro 400 ao tentar criar um usuário com email nulo`
+    - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
+  - ⚠️ **Falhou no teste**: `USERS: Recebe erro 400 ao tentar criar um usuário com senha vazia`
+    - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
+  - ⚠️ **Falhou no teste**: `USERS: Recebe erro 400 ao tentar criar um usuário com senha curta de mais`
+    - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
+  - ⚠️ **Falhou no teste**: `USERS: Recebe erro 400 ao tentar criar um usuário com senha sem números`
+    - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
+  - ⚠️ **Falhou no teste**: `USERS: Recebe erro 400 ao tentar criar um usuário com senha sem caractere especial`
+    - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
+  - ⚠️ **Falhou no teste**: `USERS: Recebe erro 400 ao tentar criar um usuário com senha sem letra maiúscula`
+    - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
+  - ⚠️ **Falhou no teste**: `USERS: Recebe erro 400 ao tentar criar um usuário com senha sem letras`
+    - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
+  - ⚠️ **Falhou no teste**: `USERS: Recebe erro 400 ao tentar criar um usuário com senha nula`
+    - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
+  - ⚠️ **Falhou no teste**: `USERS: Recebe erro 400 ao tentar criar um usuário com campo extra`
+    - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
+  - ⚠️ **Falhou no teste**: `USERS: Recebe erro 400 ao tentar criar um usuário com campo faltante`
+    - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
   - ⚠️ **Falhou no teste**: `AGENTS: Cria agentes corretamente com status code 201 e os dados inalterados do agente mais seu ID`
     - **Melhoria sugerida**: Nenhuma sugestão de melhoria disponível.
   - ⚠️ **Falhou no teste**: `AGENTS: Lista todos os agente corretamente com status code 200 e todos os dados de cada agente listados corretamente`
