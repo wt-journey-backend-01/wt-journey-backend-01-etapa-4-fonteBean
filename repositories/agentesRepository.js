@@ -17,7 +17,7 @@ async function findAll(filter = {}) {
 
 async function findById(id) {
     try{
-      const agente = await db("agentes").where({id: id}).first();
+      const agente = await db("agentes").where({id: id});
       if(!agente) return false;
       
       return agente
