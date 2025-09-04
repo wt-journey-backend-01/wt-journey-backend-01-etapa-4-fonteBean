@@ -61,9 +61,6 @@ async function signUp(req, res) {
     res.status(201).json(userResponse);
    
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({message: "error"});
-    }
     return res.status(500).json({ error: "Erro interno no servidor" });
   }
 }
