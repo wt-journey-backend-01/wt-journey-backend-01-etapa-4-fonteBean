@@ -1,5 +1,4 @@
 const express = require('express');
-const errorResponse = require('./utils/errorHandler.js');
 
 const app = express();
 const PORT = 3000;
@@ -19,7 +18,7 @@ const casosRoutes = require('./routes/casosRoutes.js');
 app.use('/agentes', agentesRoutes);
 app.use('/casos', casosRoutes);
 app.use('/auth',authRoutes); 
-app.use(errorResponse)
+
 
 app.listen(PORT, () => {
     console.log(`Servidor do Departamento de Polícia rodando em localhost:${PORT}`);

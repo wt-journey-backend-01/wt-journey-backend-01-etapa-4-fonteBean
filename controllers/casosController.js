@@ -1,6 +1,5 @@
 const casosRepository = require("../repositories/casosRepository.js")
 const agentesRepository = require("../repositories/agentesRepository.js")
-const errorResponse = require("../utils/errorHandler.js");
 const {z} = require("zod");
 
 
@@ -10,7 +9,7 @@ async function getCasos(req, res) {
     const { status, agente_id } = req.query;
 
     if (status && status !== "aberto" && status !== "solucionado") {
-      return errorResponse(res, 400, "Status nao permitido");
+      return res.status(400).json({message: "Status nao permitido"});
     }
 
 
@@ -19,25 +18,25 @@ async function getCasos(req, res) {
     if (agente_id) filters.agente_id = agente_id;
     const casos = await casosRepository.findAll(filters);
     if (!casos || casos.length === 0) {
-      return errorResponse(res, 404, "Nenhum caso encontrado com os filtros aplicados");
+      return res.status(404).json({message:"Nenhum caso encontrado com os filtros aplicados"});
     }
 
     res.status(200).json(casos);
 
   } catch (error) {
     console.error("Erro ao buscar casos:", error);
-    return errorResponse(res, 500, "Erro interno do servidor");
+    return res.status(500).json({message:"Erro interno do servidor"});
   }
 }
 
 async function getCaso(req,res){
   const casoId = Number(req.params.id);
   if(isNaN(casoId)) {
-    return errorResponse(res, 400, "ID inválido");
+    return res.status(400).json({message:"ID inválido"});
   }
   const caso = await casosRepository.findById(casoId);
   if(!caso){
-   return  errorResponse(res,404,"caso nao encontrado")
+   return res.status(404).json({message:"caso nao encontrado"})
   }
   res.status(200).json(caso)
 }
@@ -45,15 +44,15 @@ async function getCaso(req,res){
 async function getAgentebyCaso(req,res){
   const casoId = Number(req.params.id);
 if (isNaN(casoId)) {
-  return errorResponse(res, 400, "ID inválido");
+  return res.status(400).json({message:"ID inválido"});
 }
   const caso = await casosRepository.findById(casoId);
   if(!caso){
-   return  errorResponse(res,404,"caso nao encontrado")
+   return  res.status(404).json({message:"caso nao encontrado"})
   }
   const agente = await agentesRepository.findById(caso.agente_id)
   if(!agente){
-   return errorResponse(res,404,"Agente nao encontrado")
+   return res.status(404).json({message:"Agente nao encontrado"})
   }
   res.status(200).json(agente)
 }
@@ -61,12 +60,12 @@ if (isNaN(casoId)) {
 async function searchEmCaso(req,res){
   const busca = req.query.q ? req.query.q.toLowerCase() : ""
   if(!busca){
-    return errorResponse(res,404,"Parametro de busca nao encontrado")
+    return res.status(404).json({message:"Parametro de busca nao encontrado"})
   }
  
   const casosFiltrados = await casosRepository.buscaPalavraEmCaso(busca)
   if(casosFiltrados.length === 0){
-   return errorResponse(res,404,`Casos com a palavra ${busca} nao encotrados`)
+   return res.status(404).json({message:`Casos com a palavra ${busca} nao encotrados`})
   }
   res.status(200).json(casosFiltrados);
 }
@@ -106,18 +105,16 @@ const casoSchema = z.object({
 async function createCaso(req,res){
   const novoCaso = casoSchema.safeParse(req.body);
  if (!novoCaso.success) {
-    return res.status(400).json({
-      error: parseResult.error.errors.map(err => err.message),
-    });
+    return res.status(400).json({message: "Erro ao criar caso"});
   }
   const agente = await agentesRepository.findById(novoCaso.agente_id);
   if (!agente) {
-    return errorResponse(res,404,"Agente não encontrado para o agente_id fornecido");
+    return res.status(404).json({message:"Agente não encontrado para o agente_id fornecido"});
   }
    
   const create = await casosRepository.criarCaso(novoCaso);
   if(!create){
-    return errorResponse(res,400,"Erro ao criar caso");
+    return res.status(400).json({message: "Erro ao criar caso"});
   }
   res.status(201).json(create[0]);
 }
@@ -125,11 +122,11 @@ async function createCaso(req,res){
 async function deleteCaso(req,res){
    const casoId = Number(req.params.id);
   if (isNaN(casoId)) {
-    return errorResponse(res, 400, "ID inválido");
+    return res.status(400).json({message: "Id invalido"});
   }
    const sucesso = await casosRepository.deleteCaso(casoId);
    if(!sucesso){
-    return errorResponse(res,404,`Erro ao deletar caso ${casoId}`)
+    return res.status(404).json({message:`Erro ao deletar caso ${casoId}`})
    }
   res.status(204).send();
 }
@@ -137,15 +134,15 @@ async function deleteCaso(req,res){
 async function updateCaso(req, res) {
   const casoId = Number(req.params.id);
   if (isNaN(casoId)) {
-    return errorResponse(res, 400, "ID inválido");
+    return res.status(400).json({message: "Id invalido"});
   } 
   if ('id' in req.body) {
-  return errorResponse(res,400,"Não é permitido alterar o ID do caso.");
+  return res.status(400).json({message: "Nao eh permitido alterar id"});
 }
    const uptatedCaso = casoSchema.safeParse(req.body);
    if (!uptatedCaso.success) {
     return res.status(400).json({
-      error: parseResult.error.errors.map(err => err.message),
+      message: "Erro ao atualizar caso",
     });
   }
 
@@ -153,18 +150,20 @@ async function updateCaso(req, res) {
 
   const caso = await casosRepository.findById(casoId);
   if (!caso) {
-    return errorResponse(res,404,"caso não encontrado.");
+    return res.status(404).json({message:"caso não encontrado."});
   }
  
   
   const agente = await agentesRepository.findById(uptatedCaso.agente_id);
   if (!agente) {
-    return errorResponse(res,404,"Agente não encontrado para o agente_id fornecido");
+      return res.status(404).json({message:"Agente não encontrado para o agente_id fornecido"});
   }
 
   const update = await casosRepository.updateCaso(casoId,uptatedCaso)
   if(!update){
-    return errorResponse(res,404,"Erro ao atualizar caso");
+     return res.status(400).json({
+      message: "Erro ao atualizar caso",
+    });
   }
   res.status(200).json(update[0]);
 }
@@ -172,7 +171,7 @@ async function updateCaso(req, res) {
 async function patchCaso(req, res) {
   const id = Number(req.params.id);
   if (isNaN(id)) {  
-    return errorResponse(res, 400, "ID inválido");
+       return res.status(400).json({message:"id invalido"});
   }
   const { titulo, descricao, status, agente_id } = req.body;
 
@@ -188,7 +187,7 @@ async function patchCaso(req, res) {
 
   if (status !== undefined) {
     if (status !== "aberto" && status !== "solucionado") {
-      return errorResponse(res,400,"Status não permitido.");
+    return res.status(400).json({message:"Status invalido"});;
     }
     dadosParaAtualizar.status = status;
   }
@@ -203,12 +202,12 @@ async function patchCaso(req, res) {
   
   
   if (Object.keys(dadosParaAtualizar).length === 0) {
-    return errorResponse(res,400,"Nenhum dado válido fornecido para atualização." );
+    return res.status(400).json({message:"Nenhum dado válido fornecido para atualização." });
   }
   
   const casoAtualizado = await casosRepository.patchCaso(id,dadosParaAtualizar);
   if(!casoAtualizado){
-    return errorResponse(res,400,"Erro ao atualizar caso")
+    return res.status(400).json({message:"Erro ao atualizar caso"})
   }
 
   res.status(200).json(casoAtualizado[0]);
