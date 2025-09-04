@@ -15,7 +15,7 @@ async function login (req,res,next){
     if(!isPasswordValid){
       return next(errorResponse(res,401,"Password incorrect"));
     }
-    const token = jwt.sign({id: user.id, nome:user.nome, email:user.email}, process.env.JWT_SECRET
+    const token = jwt.sign({id: user.id, nome:user.nome, email:user.email}, process.env.JWT_SECRET || "secret" 
       ,{
       expiresIn: "1d"
     });
