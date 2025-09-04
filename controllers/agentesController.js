@@ -44,14 +44,14 @@ async function getAgenteById(req, res) {
 async function createAgente(req, res) {
   try {
     const agenteData = agenteSchema.parse(req.body);
-    const data = new Date(agenteData.dataDeIncorporacao);
+    const data = new Date(agenteData.data.dataDeIncorporacao);
     const agora = new Date();
     if (data > agora) {
       return res.status(400).json({message:"Data de incorporação não pode ser no futuro."});
     }
     const novoAgente = {
-      nome: agenteData.nome,
-      cargo: agenteData.cargo,
+      nome: agenteData.data.nome,
+      cargo: agenteData.data.cargo,
       dataDeIncorporacao: data.toISOString().split('T')[0],
     };
     const create = await agentesRepository.criarAgente(novoAgente);
@@ -73,7 +73,7 @@ async function updateAgente(req, res) {
     return res.status(400).json("ID inválido");
   }
    const agenteData = agenteSchema.parse(req.body);
-    const data = new Date(agenteData.dataDeIncorporacao);
+    const data = new Date(agenteData.data.dataDeIncorporacao);
     const agora = new Date();
     if (data > agora) {
       return res.status(401).json({message:"Data de incorporação não pode ser no futuro."});
@@ -83,8 +83,8 @@ async function updateAgente(req, res) {
     }
     const agenteUpdated = {
       id: agenteId,
-      nome: agenteData.nome,
-      cargo: agenteData.cargo,
+      nome: agenteData.data.nome,
+      cargo: agenteData.data.cargo,
       dataDeIncorporacao: data.toISOString().split('T')[0],
     };
 
