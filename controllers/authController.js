@@ -1,35 +1,7 @@
 const userRepository = require('../repositories/usuariosRepository.js');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const errorResponse = require('../utils/errorHandler.js');
 const {z} = require('zod');
-
-
-async function login (req,res,next){
-    const {email,senha} = req.body;
-    const user = await userRepository.findUserByEmail(email);
-    if(!user){
-      return next(errorResponse(res,404,"Not found"));
-    }
-    const isPasswordValid = await bcrypt.compare(senha, user.senha);
-    if(!isPasswordValid){
-      return next(errorResponse(res,401,"Password incorrect"));
-    }
-    const token = jwt.sign({id: user.id, nome:user.nome, email:user.email}, process.env.JWT_SECRET || "secret" 
-      ,{
-      expiresIn: "1d"
-    });
-    res.status(200).json({"access_token": token})
-}
-async function getMe(req, res) {
-  const userId = req.user.id;
-  const user = await userRepository.findUserById(userId);
-  if (!user) {
-    return errorResponse(res, 404, "Usuário não encontrado");
-  }
-  res.status(200).json(user);
-}
-
 const userSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   email: z.string().email("Email inválido"),
@@ -41,12 +13,40 @@ const userSchema = z.object({
     .regex(/[^a-zA-Z0-9]/, "Senha deve conter caractere especial"),
 }).strict();
 
+
+async function login (req,res){
+    const {email,senha} = req.body;
+    const user = await userRepository.findUserByEmail(email);
+    if(!user){
+      return res.status(404).json({message:"Not found"});
+    }
+    const isPasswordValid = await bcrypt.compare(senha, user.senha);
+    if(!isPasswordValid){
+      return res.status(401).json({message:"Password incorrect"});
+    }
+    const token = jwt.sign({id: user.id, nome:user.nome, email:user.email}, process.env.JWT_SECRET || "secret" 
+      ,{
+      expiresIn: "1d"
+    });
+    res.status(200).json({"access_token": token})
+}
+async function getMe(req, res) {
+  const userId = req.user.id;
+  const user = await userRepository.findUserById(userId);
+  if (!user) {
+    return res.status(404).json({message:"Usuário não encontrado"});
+  }
+  res.status(200).json(user);
+}
+
+
+
 async function signUp(req, res) {
   try {
     const userData = userSchema.parse(req.body);
     const userExists = await userRepository.findUserByEmail(userData.email);
     if (userExists) {
-      return errorResponse(res, 400, "User already exists");
+      return res.status(401).json({message:"User already exists"});
     }
     const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS || 10));
     const hashedPassword = await bcrypt.hash(userData.senha, salt);
@@ -54,7 +54,7 @@ async function signUp(req, res) {
     const newUser = await userRepository.createUser(userData);
 
     if (!newUser) {
-      return errorResponse(res, 400, "Bad Request");
+      return res.status(401).json({message: "Bad Request"});
     }
     const userResponse = {...newUser};
     delete userResponse.senha;
@@ -69,7 +69,7 @@ async function signUp(req, res) {
 async function getUsers (req,res){
   const users = await userRepository.findAll();
   if(!users){
-    return errorResponse(res,400,"Not Found");
+    return res.status(400).json({message:"Not Found"});
   }
   res.status(200).json(users);
 }
@@ -78,7 +78,7 @@ async function deleteUser(req, res) {
   const userId = req.params.id;
   const success = await userRepository.deleteUser(userId);
   if (!success) {
-    return errorResponse(res, 404, "Usuário não encontrado");
+    return res.status(404).json({message:"Usuário não encontrado"});
   }
   res.status(204).send();
 }
