@@ -44,20 +44,20 @@ async function getMe(req, res) {
 async function signUp(req, res) {
   try {
     const userData = userSchema.parse(req.body);
-    const userExists = await userRepository.findUserByEmail(userData.email);
+    const userExists = await userRepository.findUserByEmail(userData.data.email);
     if (userExists) {
       return res.status(400).json({message:"User already exists"});
     }
     const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS || 10));
-    const hashedPassword = await bcrypt.hash(userData.senha, salt);
-    userData.senha = hashedPassword;
+    const hashedPassword = await bcrypt.hash(userData.data.senha, salt);
+    userData.data.senha = hashedPassword;
     const newUser = await userRepository.createUser(userData);
 
     if (!newUser) {
       return res.status(400).json({message: "Bad Request"});
     }
     const userResponse = {...newUser};
-    delete userResponse.senha;
+    delete userResponse.data.senha;
     res.status(201).json(userResponse);
    
   } catch (error) {

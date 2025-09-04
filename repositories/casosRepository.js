@@ -28,7 +28,7 @@ async function findById(id) {
 
 async function criarCaso(caso){
   try{
-    const query = await db("casos").insert(caso).returning('*');
+    const query = await db("casos").insert(caso);
     if(!query){
       return false
     }
@@ -66,7 +66,7 @@ async function buscaPalavraEmCaso(palavraChave) {
 
 async function updateCaso(id, dadosAtualizados) {
   try {
-    const updated = await db('casos').where({ id }).update(dadosAtualizados).returning('*');
+    const updated = await db('casos').where({ id }).update(dadosAtualizados);
     if (!updated || updated.length === 0) {
       return false;
     }
