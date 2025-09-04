@@ -1,12 +1,13 @@
 const agentesController = require('../controllers/agentesController.js');
 const express = require('express');
+const authMiddleware = require('../middlewares/authMiddleware.js')
 const router = express.Router();
 
-router.get('/', agentesController.getAgentes);
-router.get('/:id', agentesController.getAgenteById);
-router.post('/', agentesController.createAgente);
-router.put('/:id', agentesController.updateAgente);
-router.patch('/:id', agentesController.patchAgente);
-router.delete('/:id', agentesController.deleteAgente);
+router.get('/',authMiddleware, agentesController.getAgentes);
+router.get('/:id',authMiddleware, agentesController.getAgenteById);
+router.post('/',authMiddleware, agentesController.createAgente);
+router.put('/:id',authMiddleware, agentesController.updateAgente);
+router.patch('/:id',authMiddleware, agentesController.patchAgente);
+router.delete('/:id',authMiddleware, agentesController.deleteAgente);
 
 module.exports = router;

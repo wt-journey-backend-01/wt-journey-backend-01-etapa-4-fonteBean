@@ -7,7 +7,7 @@ const PORT = 3000;
 app.use(express.urlencoded({extended: true}));
 app.use(express.json());
 
-const authMiddleware = require('./middlewares/authMiddleware.js')
+
 const authRoutes = require('./routes/authRoutes.js');
 const agentesRoutes = require('./routes/agentesRoutes.js');
 const casosRoutes = require('./routes/casosRoutes.js');
@@ -15,12 +15,9 @@ const casosRoutes = require('./routes/casosRoutes.js');
 
 
 
-app.use('/agentes',authMiddleware,  agentesRoutes);
-app.use('/casos',authMiddleware, casosRoutes);
+app.use('/agentes', agentesRoutes);
+app.use('/casos', casosRoutes);
 app.use('/auth',authRoutes); 
-
-
-
 
 
 app.listen(PORT, () => {

@@ -1,19 +1,27 @@
 const jwt = require('jsonwebtoken');
-const errorResponse = require('../utils/errorHandler')
+const errorResponse = require('../utils/errorHandler');
 
-async function authMiddleware(req,res,next){
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(" ")[1];
-  if(!token){
-   return   errorResponse(res,401,"Token Necessario");
-  }
-  jwt.verify(token, process.env.JWT_SECRET || "chavesona", (err, decoded)=>{
-    if(err){
-      return errorResponse(res,401,"Token invalido");
+function authMiddleware(req, res, next) {
+    try {
+        const authHeader = req.headers.authorization;
+        const token = authHeader && authHeader.split(' ')[1];
+        
+        if(!token) {
+            return next(errorResponse(res,'Token não fornecido.', 401));
+        }
+
+        jwt.verify(token, process.env.JWT_SECRET || 'secret', (err, user) => {
+            if(err) {
+                return next(errorResponse(res,'Token inválido ou expirado.', 401));
+            }
+
+            req.user = user;
+            next();
+        });    
+    } 
+    catch (error) {
+        return next(errorResponse(res,'Erro de autenticação de usuário.', 401));
     }
-    req.user = decoded;
-    next();
-  }) 
 }
 
 module.exports = authMiddleware;

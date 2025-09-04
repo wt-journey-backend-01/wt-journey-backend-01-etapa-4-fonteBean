@@ -1,14 +1,15 @@
 const casosController = require('../controllers/casosController.js')
 const express = require('express');
+const authMiddleware = require('../middlewares/authMiddleware.js')
 const router = express.Router()
 
-router.get('/', casosController.getCasos);
-router.get('/search', casosController.searchEmCaso)
-router.get('/:id', casosController.getCaso);
-router.get('/:id/agente', casosController.getAgentebyCaso);
-router.post('/', casosController.createCaso);
-router.put('/:id', casosController.updateCaso);
-router.patch('/:id', casosController.patchCaso);
-router.delete('/:id', casosController.deleteCaso);
+router.get('/',authMiddleware, casosController.getCasos);
+router.get('/search',authMiddleware, casosController.searchEmCaso)
+router.get('/:id',authMiddleware, casosController.getCaso);
+router.get('/:id/agente',authMiddleware, casosController.getAgentebyCaso);
+router.post('/',authMiddleware, casosController.createCaso);
+router.put('/:id', authMiddleware,casosController.updateCaso);
+router.patch('/:id',authMiddleware, casosController.patchCaso);
+router.delete('/:id',authMiddleware, casosController.deleteCaso);
 
 module.exports = router
