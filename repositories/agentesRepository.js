@@ -18,8 +18,9 @@ async function findAll(filter = {}) {
 async function findById(id) {
     try{
       const agente = await db("agentes").where({id: id});
-      if(!agente) return false;
-      
+      if(!agente){
+         return false;
+      }
       return agente
     }catch(err){
       console.log(err);
@@ -31,7 +32,7 @@ async function findById(id) {
 
 async function criarAgente(agente) {
   try {
-    const novoAgente = await db("agentes").insert(agente).returning('*');
+    const novoAgente = await db("agentes").insert(agente);
     return novoAgente;
   } catch (err) {
     console.log(err);
@@ -42,7 +43,7 @@ async function criarAgente(agente) {
 
 async function updateAgente(id,dadosAtualizados) {
   try{
-    const query = await db("agentes").where({id:id}).update(dadosAtualizados).returning('*');
+    const query = await db("agentes").where({id:id}).update(dadosAtualizados);
     if (!query || query.length === 0) {
   return false;
 }

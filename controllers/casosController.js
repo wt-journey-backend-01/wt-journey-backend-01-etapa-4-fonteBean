@@ -1,6 +1,34 @@
 const casosRepository = require("../repositories/casosRepository.js")
 const agentesRepository = require("../repositories/agentesRepository.js")
 const {z} = require("zod");
+const casoSchema = z.object({
+  titulo: z
+    .string({
+      required_error: "Titulo é obrigatório",
+      invalid_type_error: "Titulo deve ser uma string",
+    })
+    .min(1, "Titulo não pode ser vazio"),
+
+  descricao: z
+    .string({
+      required_error: "Descrição é obrigatória",
+      invalid_type_error: "Descrição deve ser uma string",
+    })
+    .min(1, "Descrição não pode ser vazia"),
+
+  status: z.enum(["aberto", "solucionado"], {
+    required_error: "Status é obrigatório",
+    invalid_type_error: "Status inválido, use 'aberto' ou 'solucionado'",
+  }),
+
+  agente_id: z
+    .number({
+      required_error: "agente_id é obrigatório",
+      invalid_type_error: "agente_id deve ser um número",
+    })
+    .int("agente_id deve ser inteiro")
+    .positive("agente_id deve ser positivo"),
+}).strict();
 
 
 async function getCasos(req, res) {
@@ -71,34 +99,7 @@ async function searchEmCaso(req,res){
 }
 
 
-const casoSchema = z.object({
-  titulo: z
-    .string({
-      required_error: "Titulo é obrigatório",
-      invalid_type_error: "Titulo deve ser uma string",
-    })
-    .min(1, "Titulo não pode ser vazio"),
 
-  descricao: z
-    .string({
-      required_error: "Descrição é obrigatória",
-      invalid_type_error: "Descrição deve ser uma string",
-    })
-    .min(1, "Descrição não pode ser vazia"),
-
-  status: z.enum(["aberto", "solucionado"], {
-    required_error: "Status é obrigatório",
-    invalid_type_error: "Status inválido, use 'aberto' ou 'solucionado'",
-  }),
-
-  agente_id: z
-    .number({
-      required_error: "agente_id é obrigatório",
-      invalid_type_error: "agente_id deve ser um número",
-    })
-    .int("agente_id deve ser inteiro")
-    .positive("agente_id deve ser positivo"),
-});
 
 
 
